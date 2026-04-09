@@ -161,23 +161,36 @@ export default function BackgroundAnimation() {
     // ── Zone management ──
     let zones = [];
     function findSpot(s) {
-      for (let a = 0; a < 40; a++) {
-        const m = s * 1.5 + 80, x = m + Math.random() * (W - m * 2), y = m + 60 + Math.random() * (H - m * 2 - 60);
+      // Place shapes in a ring around the center content.
+      // Inner boundary = just outside the content area
+      // Outer boundary = edge of viewport
+      const innerW = Math.min(280, W * 0.3);
+      const innerH = Math.min(240, H * 0.3);
+      const cx = W / 2, cy = H / 2;
+
+      for (let a = 0; a < 50; a++) {
+        // Pick a random angle around the center
+        const angle = Math.random() * Math.PI * 2;
+        // Pick a distance that's just outside the content but not too far
+        const minR = Math.sqrt(innerW * innerW + innerH * innerH);
+        const maxR = Math.min(W, H) * 0.52;
+        const r = minR + Math.random() * (maxR - minR);
+        const x = cx + Math.cos(angle) * r * (innerW / innerH);
+        const y = cy + Math.sin(angle) * r;
+        // Keep in bounds
+        if (x < s + 20 || x > W - s - 20 || y < s + 60 || y > H - s - 20) continue;
+        // Collision with existing shapes
         let ok = true;
-        // Center exclusion: large zone protecting heading, subtitle, form, and buttons
-        // On desktop: ~320px+s from center each direction. On mobile: proportional.
-        const exW = Math.min(320, W * 0.4) + s;
-        const exH = Math.min(300, H * 0.38) + s;
-        if (Math.abs(x - W / 2) < exW && Math.abs(y - H / 2) < exH) ok = false;
-        // Larger collision buffer (1.6x) so shapes never overlap
         for (const z of zones) if (Math.abs(x - z.x) < z.s * 1.6 + s * 1.6 && Math.abs(y - z.y) < z.s * 1.6 + s * 1.6) ok = false;
         if (ok) return { x, y };
       }
-      // Fallback: place in corners/edges, avoiding center
-      const side = Math.floor(Math.random() * 4);
-      const fx = side < 2 ? 60 + Math.random() * (W * 0.2) : W * 0.8 + Math.random() * (W * 0.15);
-      const fy = side % 2 === 0 ? 80 + Math.random() * (H * 0.2) : H * 0.75 + Math.random() * (H * 0.2);
-      return { x: fx, y: fy };
+      // Fallback: place at a random angle on the ring
+      const fa = Math.random() * Math.PI * 2;
+      const fr = Math.sqrt(innerW * innerW + innerH * innerH) * 1.1;
+      return {
+        x: Math.max(s + 20, Math.min(W - s - 20, cx + Math.cos(fa) * fr * (innerW / innerH))),
+        y: Math.max(s + 60, Math.min(H - s - 20, cy + Math.sin(fa) * fr))
+      };
     }
 
     // ── Ghost cursors ──

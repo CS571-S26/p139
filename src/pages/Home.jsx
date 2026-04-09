@@ -1,11 +1,50 @@
-import AuroraBackground from '../components/AuroraBackground'
-import BackgroundAnimation from '../components/BackgroundAnimation'
+import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useSocket } from '../contexts/SocketContext'
 
 export default function Home() {
+  const nameRef = useRef(null)
+  const codeRef = useRef(null)
+  const [error, setError] = useState(null)
+  const { roomCode, error: socketError, createRoom, joinRoom } = useSocket()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (roomCode) navigate('/board?room=' + roomCode)
+  }, [roomCode, navigate])
+
+  useEffect(() => {
+    if (socketError) setError(socketError)
+  }, [socketError])
+
+  useEffect(() => {
+    if (!error) return
+    const t = setTimeout(() => setError(null), 3000)
+    return () => clearTimeout(t)
+  }, [error])
+
+  function handleCreate() {
+    const name = nameRef.current?.value.trim()
+    if (!name) { setError('Enter your name first.'); return }
+    setError(null)
+    createRoom(name)
+  }
+
+  function handleJoin() {
+    const name = nameRef.current?.value.trim()
+    const code = codeRef.current?.value.trim()
+    if (!name) { setError('Enter your name first.'); return }
+    if (!code) { setError('Enter a room code.'); return }
+    setError(null)
+    joinRoom(name, code.toUpperCase())
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter') handleJoin()
+  }
+
   return (
     <>
-      <AuroraBackground />
-      <BackgroundAnimation />
       <div className="home">
         <div className="icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -15,12 +54,28 @@ export default function Home() {
         <h1 className="h1">Draw together, in real time.</h1>
         <p className="sub">Enter a name, then create a new room or join one with a code.</p>
         <div className="form">
-          <input className="inp" placeholder="Your name" maxLength={20} aria-label="Your name" />
+          <input
+            ref={nameRef}
+            className="inp"
+            placeholder="Your name"
+            maxLength={20}
+            aria-label="Your name"
+            onChange={() => setError(null)}
+          />
+          {error && <p className="form-error">{error}</p>}
           <div className="action-section">
-            <button className="btn btn-primary">Create Room</button>
+            <button className="btn btn-primary" onClick={handleCreate}>Create Room</button>
             <div className="join-row">
-              <input className="inp inp-mono" placeholder="Room code" maxLength={6} aria-label="Room code" />
-              <button className="btn btn-ghost">Join</button>
+              <input
+                ref={codeRef}
+                className="inp inp-mono"
+                placeholder="Room code"
+                maxLength={6}
+                aria-label="Room code"
+                onKeyDown={handleKeyDown}
+                onChange={() => setError(null)}
+              />
+              <button className="btn btn-ghost" onClick={handleJoin}>Join</button>
             </div>
           </div>
         </div>
