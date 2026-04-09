@@ -173,9 +173,9 @@ export default function BackgroundAnimation() {
         const angle = Math.random() * Math.PI * 2;
         // Pick a distance that's just outside the content but not too far
         const minR = Math.sqrt(innerW * innerW + innerH * innerH);
-        const maxR = Math.min(W, H) * 0.52;
+        const maxR = Math.max(W, H) * 0.55;
         const r = minR + Math.random() * (maxR - minR);
-        const x = cx + Math.cos(angle) * r * (innerW / innerH);
+        const x = cx + Math.cos(angle) * r * (W / H);
         const y = cy + Math.sin(angle) * r;
         // Keep in bounds
         if (x < s + 20 || x > W - s - 20 || y < s + 60 || y > H - s - 20) continue;
