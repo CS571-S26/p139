@@ -23,6 +23,14 @@ const COLORS = [
 ];
 const MAX_USERS = 8;
 
+function pickColor(room) {
+  const taken = new Set();
+  if (room) for (const u of room.users.values()) taken.add(u.color);
+  const available = COLORS.filter(c => !taken.has(c));
+  const pool = available.length ? available : COLORS;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 // roomCode -> { users: Map<socketId, {name, color, socketId}> }
 const rooms = new Map();
 // socketId -> roomCode
@@ -40,7 +48,7 @@ io.on('connection', (socket) => {
     let code;
     do { code = genCode(); } while (rooms.has(code));
 
-    const user = { name: name.trim().slice(0, 20), color: COLORS[0], socketId: socket.id, tool: 'pen' };
+    const user = { name: name.trim().slice(0, 20), color: pickColor(null), socketId: socket.id, tool: 'pen' };
     const users = new Map();
     users.set(socket.id, user);
     rooms.set(code, { users });
@@ -71,7 +79,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const color = COLORS[room.users.size % COLORS.length];
+    const color = pickColor(room);
     const user = { name: name.trim().slice(0, 20), color, socketId: socket.id, tool: 'pen' };
     room.users.set(socket.id, user);
     socketRooms.set(socket.id, code);
