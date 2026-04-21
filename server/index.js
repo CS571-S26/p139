@@ -22,6 +22,13 @@ const COLORS = [
   '#c45bf5', '#5bf5f0', '#f57eab', '#8af55b'
 ];
 const MAX_USERS = 8;
+const MAX_DRAWABLES = 5000;
+const ALLOWED_TOOLS = new Set(['pen', 'eraser', 'rect', 'circle', 'line']);
+
+function validPoint(p) {
+  return p && typeof p.nx === 'number' && typeof p.ny === 'number'
+    && p.nx >= -0.01 && p.nx <= 1.01 && p.ny >= -0.01 && p.ny <= 1.01;
+}
 
 function pickColor(room) {
   const taken = new Set();
@@ -51,14 +58,15 @@ io.on('connection', (socket) => {
     const user = { name: name.trim().slice(0, 20), color: pickColor(null), socketId: socket.id, tool: 'pen' };
     const users = new Map();
     users.set(socket.id, user);
-    rooms.set(code, { users });
+    rooms.set(code, { users, drawables: [], inProgress: new Map() });
     socketRooms.set(socket.id, code);
     socket.join(code);
 
     socket.emit('room-created', {
       roomCode: code,
       user,
-      users: [...users.values()]
+      users: [...users.values()],
+      drawables: []
     });
   });
 
@@ -88,7 +96,8 @@ io.on('connection', (socket) => {
     socket.emit('room-joined', {
       roomCode: code,
       user,
-      users: [...room.users.values()]
+      users: [...room.users.values()],
+      drawables: [...room.drawables]
     });
 
     socket.to(code).emit('user-joined', { user });
@@ -111,6 +120,78 @@ io.on('connection', (socket) => {
     socket.to(code).emit('tool-change', { socketId: socket.id, tool });
   });
 
+  socket.on('draw-start', (msg) => {
+    const code = socketRooms.get(socket.id);
+    if (!code) return;
+    const room = rooms.get(code);
+    if (!room) return;
+    if (!msg || typeof msg.id !== 'string') return;
+    if (!ALLOWED_TOOLS.has(msg.tool)) return;
+    if (typeof msg.color !== 'string' || msg.color.length > 9) return;
+    if (typeof msg.size !== 'number' || msg.size < 1 || msg.size > 64) return;
+    if (!validPoint(msg.point)) return;
+    const safeId = socket.id + ':' + msg.id.slice(0, 64);
+    const d = {
+      id: safeId,
+      socketId: socket.id,
+      tool: msg.tool,
+      color: msg.color,
+      size: msg.size,
+      points: [msg.point]
+    };
+    room.inProgress.set(safeId, d);
+    socket.to(code).emit('draw-start', d);
+  });
+
+  socket.on('draw-extend', ({ id, point } = {}) => {
+    const code = socketRooms.get(socket.id);
+    if (!code) return;
+    const room = rooms.get(code);
+    if (!room) return;
+    if (typeof id !== 'string') return;
+    if (!validPoint(point)) return;
+    const safeId = socket.id + ':' + id.slice(0, 64);
+    const d = room.inProgress.get(safeId);
+    if (!d) return;
+    if (d.tool === 'pen' || d.tool === 'eraser') {
+      if (d.points.length < 4000) d.points.push(point);
+    } else {
+      d.points = [d.points[0], point];
+    }
+    socket.to(code).emit('draw-extend', {
+      id: safeId,
+      point,
+      replace: d.tool !== 'pen' && d.tool !== 'eraser'
+    });
+  });
+
+  socket.on('draw-end', ({ id } = {}) => {
+    const code = socketRooms.get(socket.id);
+    if (!code) return;
+    const room = rooms.get(code);
+    if (!room) return;
+    if (typeof id !== 'string') return;
+    const safeId = socket.id + ':' + id.slice(0, 64);
+    const d = room.inProgress.get(safeId);
+    if (!d) return;
+    room.inProgress.delete(safeId);
+    room.drawables.push(d);
+    if (room.drawables.length > MAX_DRAWABLES) {
+      room.drawables.splice(0, room.drawables.length - MAX_DRAWABLES);
+    }
+    socket.to(code).emit('draw-end', { drawable: d });
+  });
+
+  socket.on('draw-clear', () => {
+    const code = socketRooms.get(socket.id);
+    if (!code) return;
+    const room = rooms.get(code);
+    if (!room) return;
+    room.drawables.length = 0;
+    room.inProgress.clear();
+    io.to(code).emit('draw-clear');
+  });
+
   socket.on('disconnect', () => {
     const code = socketRooms.get(socket.id);
     if (!code) return;
@@ -118,6 +199,16 @@ io.on('connection', (socket) => {
     socketRooms.delete(socket.id);
     const room = rooms.get(code);
     if (!room) return;
+
+    // Cancel any in-progress drawables this user had
+    const orphanedIds = [];
+    for (const [id, d] of room.inProgress) {
+      if (d.socketId === socket.id) orphanedIds.push(id);
+    }
+    for (const id of orphanedIds) room.inProgress.delete(id);
+    if (orphanedIds.length) {
+      socket.to(code).emit('draw-cancel', { ids: orphanedIds });
+    }
 
     room.users.delete(socket.id);
     if (room.users.size === 0) {

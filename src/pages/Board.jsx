@@ -2,17 +2,21 @@ import { useState, useRef, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useSocket } from '../contexts/SocketContext'
 import RemoteCursors from '../components/RemoteCursors'
+import DrawLayer from '../components/DrawLayer'
 
 const PRESETS = ['#000000', '#f5715b', '#f5d45b', '#5bf5a3', '#5b8af5', '#c45bf5']
 
 export default function Board() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
-  const { roomCode, sendCursor, sendTool } = useSocket()
+  const { roomCode, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, drawables, liveDrawables } = useSocket()
   const canvasRef = useRef(null)
+  const wrapRef = useRef(null)
   const colorRef = useRef(null)
   const shapesRef = useRef(null)
   const lastSentRef = useRef(0)
+  const lastExtendRef = useRef(0)
+  const drawingIdRef = useRef(null)
 
   const [activeTool, setActiveTool] = useState('pen')
   const [activeColor, setActiveColor] = useState('#000000')
@@ -26,12 +30,9 @@ export default function Board() {
   }, [roomParam, roomCode, navigate])
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const wrap = canvas.parentElement
+    const wrap = wrapRef.current
+    if (!wrap) return
     const ro = new ResizeObserver(([entry]) => {
-      canvas.width = entry.contentRect.width
-      canvas.height = entry.contentRect.height
       setCanvasSize({ w: entry.contentRect.width, h: entry.contentRect.height })
     })
     ro.observe(wrap)
@@ -56,6 +57,41 @@ export default function Board() {
   function handlePointerLeave() {
     lastSentRef.current = 0
     sendCursor(-1, -1)
+  }
+
+  function normalizedPoint(e) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    let nx = (e.clientX - rect.left) / rect.width
+    let ny = (e.clientY - rect.top) / rect.height
+    if (nx < 0) nx = 0; if (nx > 1) nx = 1
+    if (ny < 0) ny = 0; if (ny > 1) ny = 1
+    return { nx, ny }
+  }
+
+  function handleCanvasPointerDown(e) {
+    if (e.button !== 0) return
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+    const point = normalizedPoint(e)
+    const id = (crypto.randomUUID?.() || String(Date.now()) + Math.random())
+    drawingIdRef.current = id
+    lastExtendRef.current = 0
+    sendDrawStart({ id, tool: activeTool, color: activeColor, size: strokeSize, point })
+  }
+
+  function handleCanvasPointerMove(e) {
+    if (!drawingIdRef.current) return
+    const now = performance.now()
+    if (now - lastExtendRef.current < 16) return
+    lastExtendRef.current = now
+    sendDrawExtend({ id: drawingIdRef.current, point: normalizedPoint(e) })
+  }
+
+  function handleCanvasPointerUp(e) {
+    if (!drawingIdRef.current) return
+    // Capture final point if we haven't yet (short tap or throttled)
+    sendDrawExtend({ id: drawingIdRef.current, point: normalizedPoint(e) })
+    sendDrawEnd({ id: drawingIdRef.current })
+    drawingIdRef.current = null
   }
 
   useEffect(() => {
@@ -182,12 +218,23 @@ export default function Board() {
         </div>
 
         <div
+          ref={wrapRef}
           className={'board-canvas-wrap tool-' + activeTool}
           onPointerMove={handlePointerMove}
           onPointerLeave={handlePointerLeave}
         >
-          <canvas ref={canvasRef} />
-          <span className="board-overlay-text">Select a tool and start drawing</span>
+          <DrawLayer
+            ref={canvasRef}
+            width={canvasSize.w}
+            height={canvasSize.h}
+            onPointerDown={handleCanvasPointerDown}
+            onPointerMove={handleCanvasPointerMove}
+            onPointerUp={handleCanvasPointerUp}
+            onPointerCancel={handleCanvasPointerUp}
+          />
+          {drawables.length === 0 && Object.keys(liveDrawables).length === 0 && (
+            <span className="board-overlay-text">Select a tool and start drawing</span>
+          )}
           <RemoteCursors width={canvasSize.w} height={canvasSize.h} />
         </div>
       </div>

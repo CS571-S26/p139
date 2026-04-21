@@ -1,0 +1,79 @@
+import { forwardRef, useEffect, useRef } from 'react'
+import { useSocket } from '../contexts/SocketContext'
+
+function drawDrawable(ctx, d, W, H) {
+  if (!d.points || d.points.length === 0) return
+  const px = (n) => n * W, py = (n) => n * H
+  ctx.save()
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.lineWidth = d.size
+
+  if (d.tool === 'eraser') {
+    ctx.globalCompositeOperation = 'destination-out'
+    ctx.strokeStyle = '#000'
+    ctx.fillStyle = '#000'
+    ctx.lineWidth = Math.max(d.size * 2, 8)
+  } else {
+    ctx.strokeStyle = d.color
+    ctx.fillStyle = d.color
+  }
+
+  if (d.tool === 'pen' || d.tool === 'eraser') {
+    if (d.points.length === 1) {
+      const r = Math.max(ctx.lineWidth / 2, 1)
+      ctx.beginPath()
+      ctx.arc(px(d.points[0].nx), py(d.points[0].ny), r, 0, Math.PI * 2)
+      ctx.fill()
+    } else {
+      ctx.beginPath()
+      ctx.moveTo(px(d.points[0].nx), py(d.points[0].ny))
+      for (let i = 1; i < d.points.length; i++) {
+        ctx.lineTo(px(d.points[i].nx), py(d.points[i].ny))
+      }
+      ctx.stroke()
+    }
+  } else if (d.points.length >= 2) {
+    const [a, b] = d.points
+    const ax = px(a.nx), ay = py(a.ny)
+    const bx = px(b.nx), by = py(b.ny)
+    if (d.tool === 'rect') {
+      ctx.strokeRect(Math.min(ax, bx), Math.min(ay, by), Math.abs(bx - ax), Math.abs(by - ay))
+    } else if (d.tool === 'circle') {
+      const cx = (ax + bx) / 2, cy = (ay + by) / 2
+      const rx = Math.abs(bx - ax) / 2, ry = Math.abs(by - ay) / 2
+      ctx.beginPath()
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
+      ctx.stroke()
+    } else if (d.tool === 'line') {
+      ctx.beginPath()
+      ctx.moveTo(ax, ay)
+      ctx.lineTo(bx, by)
+      ctx.stroke()
+    }
+  }
+  ctx.restore()
+}
+
+const DrawLayer = forwardRef(function DrawLayer({ width, height, ...handlers }, ref) {
+  const internalRef = useRef(null)
+  const canvasRef = ref || internalRef
+  const { drawables, liveDrawables } = useSocket()
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width
+      canvas.height = height
+    }
+    const ctx = canvas.getContext('2d')
+    ctx.clearRect(0, 0, width, height)
+    for (const d of drawables) drawDrawable(ctx, d, width, height)
+    for (const id in liveDrawables) drawDrawable(ctx, liveDrawables[id], width, height)
+  }, [drawables, liveDrawables, width, height, canvasRef])
+
+  return <canvas ref={canvasRef} {...handlers} />
+})
+
+export default DrawLayer
