@@ -22,12 +22,11 @@ export default function RemoteCursors({ width, height }) {
             className="remote-cursor"
             style={{ left, top, color: user.color }}
           >
-            <svg className="arrow" viewBox="0 0 24 24" fill="currentColor" stroke="#000" strokeWidth="1">
-              <path d="M4 2l6 16 2.5-6.5L19 9l-15-7z" />
-            </svg>
-            <div className="rc-label" style={{ background: user.color }}>
+            <div className="rc-icon">
               <ToolIcon tool={user.tool || 'pen'} />
-              <span>{user.name}</span>
+            </div>
+            <div className="rc-label" style={{ background: user.color }}>
+              {user.name}
             </div>
           </div>
         )
