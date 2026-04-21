@@ -17,6 +17,7 @@ export default function SocketProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null)
   const [error, setError] = useState(null)
   const [connected, setConnected] = useState(false)
+  const [remoteCursors, setRemoteCursors] = useState({})
 
   function getSocket() {
     if (!socketRef.current) {
@@ -45,6 +46,16 @@ export default function SocketProvider({ children }) {
       })
       s.on('user-left', ({ socketId }) => {
         setUsers(prev => prev.filter(u => u.socketId !== socketId))
+        setRemoteCursors(prev => {
+          const { [socketId]: _, ...rest } = prev
+          return rest
+        })
+      })
+      s.on('cursor-move', ({ socketId, nx, ny }) => {
+        setRemoteCursors(prev => ({ ...prev, [socketId]: { nx, ny } }))
+      })
+      s.on('tool-change', ({ socketId, tool }) => {
+        setUsers(prev => prev.map(u => u.socketId === socketId ? { ...u, tool } : u))
       })
       s.on('room-error', ({ message }) => {
         setError(message)
@@ -68,6 +79,18 @@ export default function SocketProvider({ children }) {
     s.emit('join-room', { name, roomCode: code })
   }
 
+  function sendCursor(nx, ny) {
+    const s = socketRef.current
+    if (!s || !s.connected) return
+    s.emit('cursor-move', { nx, ny })
+  }
+
+  function sendTool(tool) {
+    const s = socketRef.current
+    if (!s || !s.connected) return
+    s.emit('tool-change', { tool })
+  }
+
   const leaveRoom = useCallback(() => {
     if (socketRef.current) {
       socketRef.current.disconnect()
@@ -76,6 +99,7 @@ export default function SocketProvider({ children }) {
     setUsers([])
     setCurrentUser(null)
     setError(null)
+    setRemoteCursors({})
   }, [])
 
   useEffect(() => {
@@ -88,7 +112,7 @@ export default function SocketProvider({ children }) {
   }, [])
 
   return (
-    <Ctx.Provider value={{ roomCode, users, currentUser, error, connected, createRoom, joinRoom, leaveRoom }}>
+    <Ctx.Provider value={{ roomCode, users, currentUser, error, connected, remoteCursors, createRoom, joinRoom, leaveRoom, sendCursor, sendTool }}>
       {children}
     </Ctx.Provider>
   )

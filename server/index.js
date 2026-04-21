@@ -40,7 +40,7 @@ io.on('connection', (socket) => {
     let code;
     do { code = genCode(); } while (rooms.has(code));
 
-    const user = { name: name.trim().slice(0, 20), color: COLORS[0], socketId: socket.id };
+    const user = { name: name.trim().slice(0, 20), color: COLORS[0], socketId: socket.id, tool: 'pen' };
     const users = new Map();
     users.set(socket.id, user);
     rooms.set(code, { users });
@@ -72,7 +72,7 @@ io.on('connection', (socket) => {
     }
 
     const color = COLORS[room.users.size % COLORS.length];
-    const user = { name: name.trim().slice(0, 20), color, socketId: socket.id };
+    const user = { name: name.trim().slice(0, 20), color, socketId: socket.id, tool: 'pen' };
     room.users.set(socket.id, user);
     socketRooms.set(socket.id, code);
     socket.join(code);
@@ -84,6 +84,23 @@ io.on('connection', (socket) => {
     });
 
     socket.to(code).emit('user-joined', { user });
+  });
+
+  socket.on('cursor-move', ({ nx, ny }) => {
+    const code = socketRooms.get(socket.id);
+    if (!code) return;
+    if (typeof nx !== 'number' || typeof ny !== 'number') return;
+    socket.to(code).emit('cursor-move', { socketId: socket.id, nx, ny });
+  });
+
+  socket.on('tool-change', ({ tool }) => {
+    const code = socketRooms.get(socket.id);
+    if (!code) return;
+    const room = rooms.get(code);
+    const user = room?.users.get(socket.id);
+    if (!user) return;
+    user.tool = tool;
+    socket.to(code).emit('tool-change', { socketId: socket.id, tool });
   });
 
   socket.on('disconnect', () => {

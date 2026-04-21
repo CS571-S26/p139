@@ -1,20 +1,24 @@
 import { useState, useRef, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useSocket } from '../contexts/SocketContext'
+import RemoteCursors from '../components/RemoteCursors'
 
 const PRESETS = ['#000000', '#f5715b', '#f5d45b', '#5bf5a3', '#5b8af5', '#c45bf5']
 
 export default function Board() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
-  const { roomCode } = useSocket()
+  const { roomCode, sendCursor, sendTool } = useSocket()
   const canvasRef = useRef(null)
   const colorRef = useRef(null)
+  const shapesRef = useRef(null)
+  const lastSentRef = useRef(0)
 
   const [activeTool, setActiveTool] = useState('pen')
   const [activeColor, setActiveColor] = useState('#000000')
   const [strokeSize, setStrokeSize] = useState(3)
   const [shapesOpen, setShapesOpen] = useState(false)
+  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 })
 
   const roomParam = params.get('room')
   useEffect(() => {
@@ -28,10 +32,42 @@ export default function Board() {
     const ro = new ResizeObserver(([entry]) => {
       canvas.width = entry.contentRect.width
       canvas.height = entry.contentRect.height
+      setCanvasSize({ w: entry.contentRect.width, h: entry.contentRect.height })
     })
     ro.observe(wrap)
     return () => ro.disconnect()
   }, [])
+
+  useEffect(() => {
+    sendTool(activeTool)
+  }, [activeTool, sendTool])
+
+  function handlePointerMove(e) {
+    const now = performance.now()
+    if (now - lastSentRef.current < 33) return
+    lastSentRef.current = now
+    const rect = e.currentTarget.getBoundingClientRect()
+    const nx = (e.clientX - rect.left) / rect.width
+    const ny = (e.clientY - rect.top) / rect.height
+    if (nx < 0 || nx > 1 || ny < 0 || ny > 1) return
+    sendCursor(nx, ny)
+  }
+
+  function handlePointerLeave() {
+    lastSentRef.current = 0
+    sendCursor(-1, -1)
+  }
+
+  useEffect(() => {
+    if (!shapesOpen) return
+    function onDown(e) {
+      if (shapesRef.current && !shapesRef.current.contains(e.target)) {
+        setShapesOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [shapesOpen])
 
   return (
     <div className="board-page">
@@ -56,7 +92,7 @@ export default function Board() {
             </svg>
           </button>
 
-          <div className="shapes-wrap">
+          <div className="shapes-wrap" ref={shapesRef}>
             <button
               className={'tool-btn' + (activeTool === 'rect' || activeTool === 'circle' || activeTool === 'line' ? ' active' : '')}
               onClick={() => setShapesOpen(!shapesOpen)}
@@ -124,10 +160,12 @@ export default function Board() {
             onChange={e => setStrokeSize(+e.target.value)}
             title={'Size: ' + strokeSize}
           />
-          <div
-            className="stroke-preview"
-            style={{ width: Math.max(strokeSize, 4), height: Math.max(strokeSize, 4) }}
-          />
+          <div className="stroke-preview-slot">
+            <div
+              className="stroke-preview"
+              style={{ width: strokeSize, height: strokeSize }}
+            />
+          </div>
 
           <div className="tool-divider" />
 
@@ -143,9 +181,14 @@ export default function Board() {
           </button>
         </div>
 
-        <div className="board-canvas-wrap">
+        <div
+          className={'board-canvas-wrap tool-' + activeTool}
+          onPointerMove={handlePointerMove}
+          onPointerLeave={handlePointerLeave}
+        >
           <canvas ref={canvasRef} />
           <span className="board-overlay-text">Select a tool and start drawing</span>
+          <RemoteCursors width={canvasSize.w} height={canvasSize.h} />
         </div>
       </div>
     </div>
