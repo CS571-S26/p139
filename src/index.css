@@ -388,12 +388,38 @@ nav {
   .board-body { flex-direction: column-reverse; }
   .board-toolbar {
     width: 100%; flex-direction: row; overflow-x: auto;
+    align-items: center;
     border-right: none; border-top: 1px solid rgba(255,255,255,0.04);
-    padding: 6px 8px; gap: 6px;
+    padding: 8px 12px; gap: 10px;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: none;
   }
-  .tool-divider { width: 1px; height: 28px; margin: 0 2px; }
-  .preset-row { flex-direction: row; gap: 4px; }
-  .stroke-slider { writing-mode: horizontal-tb; direction: ltr; width: 50px; height: auto; }
+  .board-toolbar::-webkit-scrollbar { height: 4px; }
+  .board-toolbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+  .tool-btn { flex-shrink: 0; }
+  .tool-divider { width: 1px; height: 28px; margin: 0 2px; flex-shrink: 0; }
+  .preset-row { flex-direction: row; gap: 6px; padding: 0; flex-shrink: 0; }
+  .color-preset { width: 20px; height: 20px; flex-shrink: 0; }
+  .color-picker-btn {
+    width: 20px; height: 20px; border-radius: 50%;
+    border-width: 2px; border-color: rgba(255,255,255,0.85);
+    flex-shrink: 0;
+  }
+  .shapes-wrap { flex-shrink: 0; position: relative; }
+  .shapes-popover {
+    position: absolute;
+    left: 0; top: auto; bottom: calc(100% + 6px);
+    margin-top: 0;
+    min-width: 130px;
+  }
+  .size-label {
+    margin-bottom: 0; align-self: center;
+  }
+  .stroke-slider {
+    writing-mode: horizontal-tb; direction: ltr;
+    width: 72px; height: 4px; flex-shrink: 0; align-self: center;
+  }
+  .stroke-preview-slot { align-self: center; margin: 0; flex-shrink: 0; }
   .topbar-left { min-width: auto; }
   .topbar-right { min-width: auto; }
 
