@@ -88,7 +88,7 @@ nav {
 
 /* Leave button */
 .btn-leave {
-  height: 32px; padding: 0 0.9rem; box-sizing: border-box;
+  height: 32px; padding: 2px 0.9rem 0; box-sizing: border-box;
   display: inline-flex; align-items: center; justify-content: center;
   font-family: 'Outfit', sans-serif; font-size: 0.8rem; font-weight: 500;
   color: var(--white); background: transparent;
@@ -552,7 +552,7 @@ nav {
   .nav-udot { width: 12px; height: 12px; }
   .nav-r { min-width: auto; flex-shrink: 0; }
   .btn-leave {
-    padding: 0 14px; font-size: 0.8rem;
+    padding: 2px 14px 0; font-size: 0.8rem;
     height: 30px; line-height: 1; box-sizing: border-box;
     display: inline-flex; align-items: center; justify-content: center;
   }
