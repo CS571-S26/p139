@@ -294,8 +294,11 @@ nav {
   cursor: pointer;
 }
 .size-label {
-  font-size: 0.65rem; font-weight: 500; color: var(--gray);
+  font-size: 0.65rem; font-weight: 500; color: var(--white);
+  opacity: 0.85;
   text-align: center; line-height: 1; margin-bottom: 6px;
+  display: inline-block; min-width: 2.6em;
+  flex-shrink: 0;
 }
 .stroke-preview-slot {
   width: 14px; height: 14px;
@@ -393,4 +396,21 @@ nav {
   .stroke-slider { writing-mode: horizontal-tb; direction: ltr; width: 50px; height: auto; }
   .topbar-left { min-width: auto; }
   .topbar-right { min-width: auto; }
+
+  /* Navbar: compact layout so room info + users + Leave don't overlap */
+  nav { padding: 0 0.6rem; gap: 0.5rem; }
+  .brand { display: none; }
+  .nav-l { gap: 0; flex-shrink: 0; }
+  .nav-board-info {
+    position: static; transform: none;
+    gap: 6px; flex: 1; min-width: 0; justify-content: center;
+    overflow: hidden;
+  }
+  .nav-room-pill { padding: 3px 6px; font-size: 0.75rem; gap: 4px; flex-shrink: 0; }
+  .nav-room-label { display: none; }
+  .nav-copy-icon { width: 11px; height: 11px; }
+  .nav-user { gap: 0; font-size: 0; }
+  .nav-udot { width: 11px; height: 11px; }
+  .nav-r { min-width: auto; flex-shrink: 0; }
+  .btn-leave { padding: 4px 10px; font-size: 0.75rem; }
 }
