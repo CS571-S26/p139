@@ -20,6 +20,8 @@ export default function SocketProvider({ children }) {
   const [remoteCursors, setRemoteCursors] = useState({})
   const [drawables, setDrawables] = useState([])
   const [liveDrawables, setLiveDrawables] = useState({})
+  const [undoStack, setUndoStack] = useState([])
+  const [redoStack, setRedoStack] = useState([])
 
   function getSocket() {
     if (!socketRef.current) {
@@ -37,6 +39,8 @@ export default function SocketProvider({ children }) {
         setUsers(u)
         setDrawables(d || [])
         setLiveDrawables({})
+        setUndoStack([])
+        setRedoStack([])
         setError(null)
       })
       s.on('room-joined', ({ roomCode: code, user, users: u, drawables: d }) => {
@@ -45,6 +49,8 @@ export default function SocketProvider({ children }) {
         setUsers(u)
         setDrawables(d || [])
         setLiveDrawables({})
+        setUndoStack([])
+        setRedoStack([])
         setError(null)
       })
       s.on('user-joined', ({ user }) => {
@@ -90,9 +96,17 @@ export default function SocketProvider({ children }) {
           return next
         })
       })
+      s.on('draw-remove', ({ id }) => {
+        setDrawables(prev => prev.filter(d => d.id !== id))
+      })
+      s.on('draw-add', ({ drawable }) => {
+        setDrawables(prev => prev.some(d => d.id === drawable.id) ? prev : [...prev, drawable])
+      })
       s.on('draw-clear', () => {
         setDrawables([])
         setLiveDrawables({})
+        setUndoStack([])
+        setRedoStack([])
       })
       s.on('room-error', ({ message }) => {
         setError(message)
@@ -171,7 +185,34 @@ export default function SocketProvider({ children }) {
       const { [localId]: _, ...rest } = prev
       return rest
     })
+    setUndoStack(prev => [...prev, localId])
+    setRedoStack([])
     s.emit('draw-end', { id })
+  }
+
+  function undo() {
+    if (undoStack.length === 0) return
+    const id = undoStack[undoStack.length - 1]
+    const d = drawables.find(x => x.id === id)
+    const s = socketRef.current
+    if (!s || !s.connected) return
+    setUndoStack(prev => prev.slice(0, -1))
+    if (d) {
+      setRedoStack(prev => [...prev, d])
+      setDrawables(prev => prev.filter(x => x.id !== id))
+    }
+    s.emit('draw-undo', { id })
+  }
+
+  function redo() {
+    if (redoStack.length === 0) return
+    const d = redoStack[redoStack.length - 1]
+    const s = socketRef.current
+    if (!s || !s.connected) return
+    setRedoStack(prev => prev.slice(0, -1))
+    setUndoStack(prev => [...prev, d.id])
+    setDrawables(prev => prev.some(x => x.id === d.id) ? prev : [...prev, d])
+    s.emit('draw-redo', { drawable: d })
   }
 
   function sendDrawClear() {
@@ -194,6 +235,8 @@ export default function SocketProvider({ children }) {
     setRemoteCursors({})
     setDrawables([])
     setLiveDrawables({})
+    setUndoStack([])
+    setRedoStack([])
   }, [])
 
   useEffect(() => {
@@ -206,7 +249,7 @@ export default function SocketProvider({ children }) {
   }, [])
 
   return (
-    <Ctx.Provider value={{ roomCode, users, currentUser, error, connected, remoteCursors, drawables, liveDrawables, createRoom, joinRoom, leaveRoom, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, sendDrawClear }}>
+    <Ctx.Provider value={{ roomCode, users, currentUser, error, connected, remoteCursors, drawables, liveDrawables, canUndo: undoStack.length > 0, canRedo: redoStack.length > 0, createRoom, joinRoom, leaveRoom, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, sendDrawClear, undo, redo }}>
       {children}
     </Ctx.Provider>
   )

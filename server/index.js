@@ -182,6 +182,37 @@ io.on('connection', (socket) => {
     socket.to(code).emit('draw-end', { drawable: d });
   });
 
+  socket.on('draw-undo', ({ id } = {}) => {
+    const code = socketRooms.get(socket.id);
+    if (!code) return;
+    const room = rooms.get(code);
+    if (!room) return;
+    if (typeof id !== 'string') return;
+    const idx = room.drawables.findIndex(d => d.id === id && d.socketId === socket.id);
+    if (idx === -1) return;
+    room.drawables.splice(idx, 1);
+    io.to(code).emit('draw-remove', { id });
+  });
+
+  socket.on('draw-redo', ({ drawable } = {}) => {
+    const code = socketRooms.get(socket.id);
+    if (!code) return;
+    const room = rooms.get(code);
+    if (!room) return;
+    if (!drawable || drawable.socketId !== socket.id) return;
+    if (!ALLOWED_TOOLS.has(drawable.tool)) return;
+    if (typeof drawable.color !== 'string' || drawable.color.length > 9) return;
+    if (typeof drawable.size !== 'number' || drawable.size < 1 || drawable.size > 64) return;
+    if (!Array.isArray(drawable.points) || drawable.points.length === 0) return;
+    for (const p of drawable.points) if (!validPoint(p)) return;
+    if (room.drawables.some(d => d.id === drawable.id)) return;
+    room.drawables.push(drawable);
+    if (room.drawables.length > MAX_DRAWABLES) {
+      room.drawables.splice(0, room.drawables.length - MAX_DRAWABLES);
+    }
+    io.to(code).emit('draw-add', { drawable });
+  });
+
   socket.on('draw-clear', () => {
     const code = socketRooms.get(socket.id);
     if (!code) return;

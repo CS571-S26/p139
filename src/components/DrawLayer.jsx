@@ -28,8 +28,17 @@ function drawDrawable(ctx, d, W, H) {
     } else {
       ctx.beginPath()
       ctx.moveTo(px(d.points[0].nx), py(d.points[0].ny))
-      for (let i = 1; i < d.points.length; i++) {
-        ctx.lineTo(px(d.points[i].nx), py(d.points[i].ny))
+      if (d.points.length === 2) {
+        ctx.lineTo(px(d.points[1].nx), py(d.points[1].ny))
+      } else {
+        for (let i = 1; i < d.points.length - 1; i++) {
+          const cx = px(d.points[i].nx), cy = py(d.points[i].ny)
+          const nx2 = px(d.points[i + 1].nx), ny2 = py(d.points[i + 1].ny)
+          const mx = (cx + nx2) / 2, my = (cy + ny2) / 2
+          ctx.quadraticCurveTo(cx, cy, mx, my)
+        }
+        const last = d.points[d.points.length - 1]
+        ctx.lineTo(px(last.nx), py(last.ny))
       }
       ctx.stroke()
     }

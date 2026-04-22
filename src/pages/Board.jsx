@@ -9,7 +9,7 @@ const PRESETS = ['#000000', '#f5715b', '#f5d45b', '#5bf5a3', '#5b8af5', '#c45bf5
 export default function Board() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
-  const { roomCode, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, drawables, liveDrawables } = useSocket()
+  const { roomCode, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, drawables, liveDrawables, canUndo, canRedo, undo, redo } = useSocket()
   const canvasRef = useRef(null)
   const wrapRef = useRef(null)
   const colorRef = useRef(null)
@@ -104,6 +104,22 @@ export default function Board() {
     document.addEventListener('mousedown', onDown)
     return () => document.removeEventListener('mousedown', onDown)
   }, [shapesOpen])
+
+  useEffect(() => {
+    function onKey(e) {
+      const tag = e.target.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      const mod = e.ctrlKey || e.metaKey
+      if (!mod) return
+      if (e.key === 'z' && !e.shiftKey) {
+        e.preventDefault(); undo()
+      } else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+        e.preventDefault(); redo()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [undo, redo])
 
   return (
     <div className="board-page">
@@ -205,12 +221,22 @@ export default function Board() {
 
           <div className="tool-divider" />
 
-          <button className="tool-btn disabled" title="Undo" disabled>
+          <button
+            className={'tool-btn' + (canUndo ? '' : ' disabled')}
+            title="Undo (Cmd/Ctrl+Z)"
+            onClick={undo}
+            disabled={!canUndo}
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
             </svg>
           </button>
-          <button className="tool-btn disabled" title="Redo" disabled>
+          <button
+            className={'tool-btn' + (canRedo ? '' : ' disabled')}
+            title="Redo (Cmd/Ctrl+Shift+Z)"
+            onClick={redo}
+            disabled={!canRedo}
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.13-9.36L23 10" />
             </svg>
