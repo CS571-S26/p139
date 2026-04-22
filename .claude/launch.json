@@ -3,10 +3,9 @@
   "configurations": [
     {
       "name": "drawboard-dev",
-      "runtimeExecutable": "/opt/homebrew/bin/node",
-      "runtimeArgs": ["/opt/homebrew/bin/npx", "vite", "--port", "5173"],
-      "port": 5173,
-      "cwd": "/Users/romankus/Documents/Sophomore2ndSem/CS571/WebProject/drawboard"
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173
     }
   ]
 }
