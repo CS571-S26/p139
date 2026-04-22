@@ -516,8 +516,8 @@ nav {
   .preset-row { flex-direction: row; gap: 6px; padding: 0; flex-shrink: 0; }
   .color-preset { width: 20px; height: 20px; flex-shrink: 0; }
   .color-picker-btn {
-    width: 20px; height: 20px; border-radius: 50%;
-    border-width: 2px; border-color: rgba(255,255,255,0.85);
+    width: 28px; height: 28px; border-radius: 7px;
+    border: 2px solid rgba(255,255,255,0.35);
     flex-shrink: 0;
   }
   .size-label {
