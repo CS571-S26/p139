@@ -541,7 +541,7 @@ nav {
 
   /* Navbar: compact layout so room info + users + Leave don't overlap */
   nav {
-    padding: 0 0.35rem; gap: 0.5rem;
+    padding: 0 0.6rem; gap: 0.5rem;
     padding-top: env(safe-area-inset-top);
     background: var(--bg); backdrop-filter: none;
   }
@@ -573,11 +573,11 @@ nav {
 @media (max-height: 500px) and (orientation: landscape) and (pointer: coarse) {
   .board-body { flex-direction: row; }
   .board-toolbar {
-    width: 52px;
+    width: calc(52px + 12px);
     flex-direction: column;
     overflow-x: visible; overflow-y: auto;
     align-items: center; gap: 4px;
-    padding: 8px 0;
+    padding: 8px 0 8px 12px;
     border-top: none; border-right: 1px solid rgba(255,255,255,0.06);
     border-left: none;
   }
