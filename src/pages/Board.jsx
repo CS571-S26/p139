@@ -3,6 +3,8 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useSocket } from '../contexts/SocketContext'
 import RemoteCursors from '../components/RemoteCursors'
 import DrawLayer from '../components/DrawLayer'
+import AnchoredPopover from '../components/AnchoredPopover'
+import ColorPicker from '../components/ColorPicker'
 
 const PRESETS = ['#000000', '#f5715b', '#f5d45b', '#5bf5a3', '#5b8af5', '#c45bf5']
 
@@ -12,8 +14,8 @@ export default function Board() {
   const { roomCode, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, drawables, liveDrawables, canUndo, canRedo, undo, redo } = useSocket()
   const canvasRef = useRef(null)
   const wrapRef = useRef(null)
-  const colorRef = useRef(null)
-  const shapesRef = useRef(null)
+  const colorBtnRef = useRef(null)
+  const shapesBtnRef = useRef(null)
   const lastSentRef = useRef(0)
   const lastExtendRef = useRef(0)
   const drawingIdRef = useRef(null)
@@ -22,6 +24,7 @@ export default function Board() {
   const [activeColor, setActiveColor] = useState('#000000')
   const [strokeSize, setStrokeSize] = useState(3)
   const [shapesOpen, setShapesOpen] = useState(false)
+  const [colorOpen, setColorOpen] = useState(false)
   const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 })
 
   const roomParam = params.get('room')
@@ -95,17 +98,6 @@ export default function Board() {
   }
 
   useEffect(() => {
-    if (!shapesOpen) return
-    function onDown(e) {
-      if (shapesRef.current && !shapesRef.current.contains(e.target)) {
-        setShapesOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [shapesOpen])
-
-  useEffect(() => {
     function onKey(e) {
       const tag = e.target.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
@@ -144,50 +136,50 @@ export default function Board() {
             </svg>
           </button>
 
-          <div className="shapes-wrap" ref={shapesRef}>
-            <button
-              className={'tool-btn' + (activeTool === 'rect' || activeTool === 'circle' || activeTool === 'line' ? ' active' : '')}
-              onClick={() => setShapesOpen(!shapesOpen)}
-              title="Shapes"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="14" cy="10" r="7" /><rect x="3" y="11" width="10" height="10" rx="1" />
-              </svg>
-            </button>
-            {shapesOpen && (
-              <div className="shapes-popover">
-                <button className="shape-opt" onClick={() => { setActiveTool('rect'); setShapesOpen(false) }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="5" width="18" height="14" rx="1" /></svg>
-                  Rectangle
-                </button>
-                <button className="shape-opt" onClick={() => { setActiveTool('circle'); setShapesOpen(false) }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /></svg>
-                  Circle
-                </button>
-                <button className="shape-opt" onClick={() => { setActiveTool('line'); setShapesOpen(false) }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="19" x2="19" y2="5" /></svg>
-                  Line
-                </button>
-              </div>
-            )}
-          </div>
+          <button
+            ref={shapesBtnRef}
+            className={'tool-btn' + (activeTool === 'rect' || activeTool === 'circle' || activeTool === 'line' ? ' active' : '')}
+            onClick={() => setShapesOpen(v => !v)}
+            title="Shapes"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="14" cy="10" r="7" /><rect x="3" y="11" width="10" height="10" rx="1" />
+            </svg>
+          </button>
+          <AnchoredPopover anchorRef={shapesBtnRef} open={shapesOpen} onClose={() => setShapesOpen(false)}>
+            <div className="shapes-popover">
+              <button className="shape-opt" onClick={() => { setActiveTool('rect'); setShapesOpen(false) }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="5" width="18" height="14" rx="1" /></svg>
+                Rectangle
+              </button>
+              <button className="shape-opt" onClick={() => { setActiveTool('circle'); setShapesOpen(false) }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /></svg>
+                Circle
+              </button>
+              <button className="shape-opt" onClick={() => { setActiveTool('line'); setShapesOpen(false) }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="19" x2="19" y2="5" /></svg>
+                Line
+              </button>
+            </div>
+          </AnchoredPopover>
 
           <div className="tool-divider" />
 
           {/* Color picker */}
           <button
+            ref={colorBtnRef}
             className="color-picker-btn"
             style={{ background: activeColor }}
-            onClick={() => colorRef.current?.click()}
+            onClick={() => setColorOpen(v => !v)}
             title="Pick color"
           />
-          <input
-            ref={colorRef}
-            type="color"
-            className="color-input-hidden"
-            value={activeColor}
-            onChange={e => setActiveColor(e.target.value)}
-          />
+          <AnchoredPopover anchorRef={colorBtnRef} open={colorOpen} onClose={() => setColorOpen(false)}>
+            <ColorPicker
+              value={activeColor}
+              onChange={(c) => setActiveColor(c)}
+              onClose={() => setColorOpen(false)}
+            />
+          </AnchoredPopover>
           <div className="preset-row">
             {PRESETS.map(c => (
               <button
