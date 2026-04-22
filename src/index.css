@@ -20,6 +20,7 @@ body {
   background: var(--bg);
   color: var(--white);
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
 }
 
@@ -104,7 +105,9 @@ nav {
 /* ── Home Page ── */
 .home {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  min-height: 100vh; padding: 2rem 1.5rem; text-align: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 2rem 1.5rem; text-align: center;
   position: relative; z-index: 3;
 }
 .icon { width: 48px; height: 48px; background: var(--blue); border-radius: 13px; display: grid; place-items: center; margin-bottom: 1.1rem; box-shadow: 0 0 30px rgba(91,138,245,0.2), 0 0 60px rgba(91,138,245,0.05); }
@@ -541,7 +544,7 @@ nav {
 
   /* Navbar: compact layout so room info + users + Leave don't overlap */
   nav {
-    padding: 0 0.85rem; gap: 0.5rem;
+    padding: 0 0.85rem 0 1.1rem; gap: 0.5rem;
     padding-top: env(safe-area-inset-top);
     background: var(--bg); backdrop-filter: none;
   }
@@ -591,4 +594,15 @@ nav {
   .size-label { margin-bottom: 6px; font-size: 0.65rem; min-width: 2.6em; }
   .stroke-preview-slot { margin: 2px auto; }
   .tool-divider { width: 28px; height: 1px; margin: 6px 0; }
+
+  /* Compress home page so it fits landscape phone without scrolling */
+  .home { padding: 0.8rem 1rem; justify-content: center; }
+  .icon { width: 36px; height: 36px; margin-bottom: 0.5rem; border-radius: 10px; }
+  .icon svg { width: 18px; height: 18px; }
+  .h1 { font-size: 1.2rem; margin-bottom: 0.3rem; }
+  .sub { font-size: 0.78rem; margin-bottom: 0.7rem; }
+  .form { max-width: 320px; gap: 0.4rem; }
+  .action-section { gap: 0.4rem; margin-top: 0.3rem; }
+  .inp { height: 38px; }
+  .btn { height: 38px; }
 }
