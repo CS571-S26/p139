@@ -574,13 +574,18 @@ nav {
 
 /* ── Landscape phone override: left sidebar instead of bottom toolbar ── */
 @media (max-height: 500px) and (orientation: landscape) and (pointer: coarse) {
+  /* Nav: re-add safe-area horizontal insets so logo/Leave clear the notch + home indicator */
+  nav {
+    padding-left: max(1.1rem, env(safe-area-inset-left));
+    padding-right: max(0.85rem, env(safe-area-inset-right));
+  }
   .board-body { flex-direction: row; }
   .board-toolbar {
-    width: calc(52px + 28px);
+    width: calc(52px + max(28px, env(safe-area-inset-left)));
     flex-direction: column;
     overflow-x: visible; overflow-y: auto;
     align-items: center; gap: 4px;
-    padding: 8px 0 8px 28px;
+    padding: 8px 0 8px max(28px, env(safe-area-inset-left));
     border-top: none; border-right: 1px solid rgba(255,255,255,0.06);
     border-left: none;
   }
