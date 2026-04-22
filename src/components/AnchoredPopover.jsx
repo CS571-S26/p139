@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom'
  * or below a given anchor element. Escapes parent overflow clipping.
  * Handles outside-click / Escape to close.
  */
-export default function AnchoredPopover({ anchorRef, open, onClose, children, placement = 'top', offset = 6 }) {
+export default function AnchoredPopover({ anchorRef, open, onClose, children, placement = 'auto', offset = 8 }) {
   const panelRef = useRef(null)
   const [pos, setPos] = useState(null)
 
@@ -18,17 +18,37 @@ export default function AnchoredPopover({ anchorRef, open, onClose, children, pl
       if (!a || !p) return
       const ar = a.getBoundingClientRect()
       const pr = p.getBoundingClientRect()
-      let left = ar.left
-      // Clamp horizontally to viewport
-      if (left + pr.width > window.innerWidth - 8) left = window.innerWidth - pr.width - 8
-      if (left < 8) left = 8
-      let top
-      if (placement === 'top') {
-        top = ar.top - pr.height - offset
-        if (top < 8) top = ar.bottom + offset // flip below if not enough room above
-      } else {
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+      // Resolve 'auto': narrow viewport -> top (horizontal toolbar at bottom), else right (desktop sidebar)
+      const effective = placement === 'auto' ? (vw <= 640 ? 'top' : 'right') : placement
+      let left, top
+      if (effective === 'right') {
+        left = ar.right + offset
+        if (left + pr.width > vw - 8) left = ar.left - pr.width - offset // flip to the left
+        if (left < 8) left = 8
+        top = ar.top
+        if (top + pr.height > vh - 8) top = vh - pr.height - 8
+        if (top < 8) top = 8
+      } else if (effective === 'left') {
+        left = ar.left - pr.width - offset
+        if (left < 8) left = ar.right + offset
+        top = ar.top
+        if (top + pr.height > vh - 8) top = vh - pr.height - 8
+        if (top < 8) top = 8
+      } else if (effective === 'bottom') {
+        left = ar.left
+        if (left + pr.width > vw - 8) left = vw - pr.width - 8
+        if (left < 8) left = 8
         top = ar.bottom + offset
-        if (top + pr.height > window.innerHeight - 8) top = ar.top - pr.height - offset
+        if (top + pr.height > vh - 8) top = ar.top - pr.height - offset
+      } else {
+        // 'top'
+        left = ar.left
+        if (left + pr.width > vw - 8) left = vw - pr.width - 8
+        if (left < 8) left = 8
+        top = ar.top - pr.height - offset
+        if (top < 8) top = ar.bottom + offset
       }
       setPos({ left, top })
     }
