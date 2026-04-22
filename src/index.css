@@ -542,6 +542,7 @@ nav {
     padding-top: env(safe-area-inset-top);
     padding-left: max(0.6rem, env(safe-area-inset-left));
     padding-right: max(0.6rem, env(safe-area-inset-right));
+    background: var(--bg); backdrop-filter: none;
   }
   .brand { display: none; }
   .nav-l { gap: 0; flex-shrink: 0; }
