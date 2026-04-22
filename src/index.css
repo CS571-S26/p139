@@ -47,6 +47,8 @@ body {
 nav {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 1.5rem; height: 54px;
+  padding-left: max(1.5rem, env(safe-area-inset-left));
+  padding-right: max(1.5rem, env(safe-area-inset-right));
   background: rgba(6,6,9,0.6); backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255,255,255,0.04);
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
@@ -199,6 +201,9 @@ nav {
 .board-page {
   display: flex; flex-direction: column;
   height: 100vh; padding-top: 54px;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
   position: relative; z-index: 3;
   overflow: hidden;
 }
@@ -488,14 +493,15 @@ nav {
 .cp-rgb { display: flex; gap: 8px; margin-top: 10px; }
 
 /* ── Mobile ── */
-@media (max-width: 640px) {
+@media (max-width: 640px), (max-height: 500px) and (orientation: landscape) and (pointer: coarse) {
   nav { padding: 0 1rem; }
   .nav-m { gap: 1.2rem; }
   .home { padding: 2rem 1rem; }
   .h1 { font-size: 1.6rem; }
   .sub { font-size: 0.84rem; margin-bottom: 1.4rem; }
   .form { max-width: 280px; }
-  .inp { height: 40px; font-size: 0.84rem; }
+  .inp { height: 44px; font-size: 16px; }
+  .inp-mono { font-size: 16px; }
   .btn { height: 40px; font-size: 0.84rem; }
   .gc-name { display: none; }
   .about { padding: 6rem 1rem 3rem; }
