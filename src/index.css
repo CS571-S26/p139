@@ -492,7 +492,7 @@ nav {
 .cp-rgb-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .cp-rgb { display: flex; gap: 8px; margin-top: 10px; }
 
-/* ── Mobile ── */
+/* ── Mobile (portrait + landscape phones) ── */
 @media (max-width: 640px), (max-height: 500px) and (orientation: landscape) and (pointer: coarse) {
   nav { padding: 0 1rem; }
   .nav-m { gap: 1.2rem; }
@@ -502,7 +502,7 @@ nav {
   .form { max-width: 280px; }
   .inp { height: 44px; font-size: 16px; }
   .inp-mono { font-size: 16px; }
-  .btn { height: 40px; font-size: 0.84rem; }
+  .btn { height: 44px; font-size: 0.88rem; }
   .gc-name { display: none; }
   .about { padding: 6rem 1rem 3rem; }
   .about-grid { grid-template-columns: 1fr; max-width: 320px; }
@@ -562,4 +562,26 @@ nav {
     height: 30px; line-height: 1; box-sizing: border-box;
     display: inline-flex; align-items: center; justify-content: center;
   }
+}
+
+/* ── Landscape phone override: right sidebar instead of bottom toolbar ── */
+@media (max-height: 500px) and (orientation: landscape) and (pointer: coarse) {
+  .board-body { flex-direction: row-reverse; }
+  .board-toolbar {
+    width: 52px; flex-direction: column;
+    overflow-x: visible; overflow-y: auto;
+    align-items: center; gap: 4px; padding: 8px 0;
+    border-top: none; border-left: 1px solid rgba(255,255,255,0.06);
+    padding-right: env(safe-area-inset-right);
+  }
+  .preset-row { flex-direction: column; gap: 3px; padding: 2px 0; }
+  .color-preset { width: 14px; height: 14px; }
+  .color-picker-btn { width: 28px; height: 28px; border-radius: 8px; }
+  .stroke-slider {
+    writing-mode: vertical-lr; direction: rtl;
+    width: 4px; height: 70px;
+  }
+  .size-label { margin-bottom: 6px; font-size: 0.65rem; min-width: 2.6em; }
+  .stroke-preview-slot { margin: 2px auto; }
+  .tool-divider { width: 28px; height: 1px; margin: 6px 0; }
 }
