@@ -59,6 +59,48 @@ function drawDrawable(ctx, d, W, H) {
       ctx.moveTo(ax, ay)
       ctx.lineTo(bx, by)
       ctx.stroke()
+    } else if (d.tool === 'triangle') {
+      const left = Math.min(ax, bx), right = Math.max(ax, bx)
+      const top = Math.min(ay, by), bottom = Math.max(ay, by)
+      const midX = (left + right) / 2
+      ctx.beginPath()
+      ctx.moveTo(midX, top)
+      ctx.lineTo(left, bottom)
+      ctx.lineTo(right, bottom)
+      ctx.closePath()
+      ctx.stroke()
+    } else if (d.tool === 'arrow') {
+      const angle = Math.atan2(by - ay, bx - ax)
+      const headLen = Math.max(d.size * 4, 10)
+      ctx.beginPath()
+      ctx.moveTo(ax, ay)
+      ctx.lineTo(bx, by)
+      ctx.lineTo(
+        bx - headLen * Math.cos(angle - Math.PI / 6),
+        by - headLen * Math.sin(angle - Math.PI / 6)
+      )
+      ctx.moveTo(bx, by)
+      ctx.lineTo(
+        bx - headLen * Math.cos(angle + Math.PI / 6),
+        by - headLen * Math.sin(angle + Math.PI / 6)
+      )
+      ctx.stroke()
+    } else if (d.tool === 'star') {
+      const cx = (ax + bx) / 2, cy = (ay + by) / 2
+      const R = Math.min(Math.abs(bx - ax), Math.abs(by - ay)) / 2
+      if (R > 0) {
+        const r = R * 0.4
+        ctx.beginPath()
+        for (let i = 0; i < 10; i++) {
+          const radius = i % 2 === 0 ? R : r
+          const theta = -Math.PI / 2 + (i * Math.PI) / 5
+          const x = cx + radius * Math.cos(theta)
+          const y = cy + radius * Math.sin(theta)
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
+        }
+        ctx.closePath()
+        ctx.stroke()
+      }
     }
   }
   ctx.restore()

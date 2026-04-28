@@ -348,11 +348,66 @@ nav {
 .board-canvas-wrap.tool-line canvas {
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='19' x2='19' y2='5'/%3E%3C/svg%3E") 10 10, crosshair;
 }
+.board-canvas-wrap.tool-triangle canvas {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4 L4 20 L20 20 Z'/%3E%3C/svg%3E") 10 10, crosshair;
+}
+.board-canvas-wrap.tool-arrow canvas {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='4' y1='20' x2='20' y2='4'/%3E%3Cpolyline points='13 4 20 4 20 11'/%3E%3C/svg%3E") 10 10, crosshair;
+}
+.board-canvas-wrap.tool-star canvas {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 14.6 9 22 9 16 13.5 18.2 21 12 16.5 5.8 21 8 13.5 2 9 9.4 9'/%3E%3C/svg%3E") 10 10, crosshair;
+}
 .board-overlay-text {
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   color: #b0b0b8; font-size: 0.85rem; font-weight: 300;
   pointer-events: none;
+}
+
+/* Clear-canvas vote banner */
+.clear-vote-banner {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 14px;
+  background: var(--surface); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.55);
+  font-family: 'Outfit', sans-serif; font-size: 0.84rem;
+  color: var(--white); z-index: 5;
+  animation: clearVoteIn 0.18s ease-out;
+}
+@keyframes clearVoteIn {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+.clear-vote-text strong { font-weight: 600; }
+.clear-vote-count { color: var(--gray); font-weight: 400; margin-left: 4px; }
+.clear-vote-actions { display: flex; gap: 6px; }
+.clear-vote-btn {
+  font-family: 'Outfit', sans-serif; font-size: 0.78rem; font-weight: 500;
+  height: 30px; padding: 0 12px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: transparent; color: var(--white);
+  cursor: pointer; transition: all 0.15s;
+  line-height: 1;
+}
+.clear-vote-btn.approve { background: rgba(91,245,163,0.15); border-color: rgba(91,245,163,0.45); color: #5bf5a3; }
+.clear-vote-btn.approve:hover { background: rgba(91,245,163,0.25); }
+.clear-vote-btn.reject { background: rgba(245,113,91,0.12); border-color: rgba(245,113,91,0.45); color: #f5715b; }
+.clear-vote-btn.reject:hover { background: rgba(245,113,91,0.22); }
+
+@media (max-width: 640px) {
+  .clear-vote-banner {
+    top: 8px; left: 8px; right: 8px; transform: none;
+    flex-direction: column; align-items: stretch; gap: 8px;
+    padding: 10px 12px;
+  }
+  @keyframes clearVoteIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .clear-vote-text { text-align: center; }
+  .clear-vote-actions { justify-content: center; }
 }
 
 .remote-cursors-layer {

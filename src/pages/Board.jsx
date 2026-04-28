@@ -11,7 +11,7 @@ const PRESETS = ['#000000', '#f5715b', '#f5d45b', '#5bf5a3', '#5b8af5', '#c45bf5
 export default function Board() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
-  const { roomCode, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, drawables, liveDrawables, canUndo, canRedo, undo, redo } = useSocket()
+  const { roomCode, currentUser, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, drawables, liveDrawables, canUndo, canRedo, undo, redo, clearVote, startClearVote, respondClearVote } = useSocket()
   const canvasRef = useRef(null)
   const wrapRef = useRef(null)
   const colorBtnRef = useRef(null)
@@ -113,6 +113,32 @@ export default function Board() {
     return () => window.removeEventListener('keydown', onKey)
   }, [undo, redo])
 
+  function handleExportPng() {
+    const c = canvasRef.current
+    if (!c || !c.width || !c.height) return
+    const out = document.createElement('canvas')
+    out.width = c.width
+    out.height = c.height
+    const ctx = out.getContext('2d')
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, out.width, out.height)
+    ctx.drawImage(c, 0, 0)
+    out.toBlob((blob) => {
+      if (!blob) return
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `drawboard-${roomCode || 'canvas'}-${Date.now()}.png`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    }, 'image/png')
+  }
+
+  const isShapeTool = ['rect', 'circle', 'line', 'triangle', 'arrow', 'star'].includes(activeTool)
+  const isInitiator = clearVote && currentUser && clearVote.initiatorSocketId === currentUser.socketId
+
   return (
     <div className="board-page">
       <div className="board-body">
@@ -138,7 +164,7 @@ export default function Board() {
 
           <button
             ref={shapesBtnRef}
-            className={'tool-btn' + (activeTool === 'rect' || activeTool === 'circle' || activeTool === 'line' ? ' active' : '')}
+            className={'tool-btn' + (isShapeTool ? ' active' : '')}
             onClick={() => setShapesOpen(v => !v)}
             title="Shapes"
           >
@@ -159,6 +185,18 @@ export default function Board() {
               <button className="shape-opt" onClick={() => { setActiveTool('line'); setShapesOpen(false) }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="19" x2="19" y2="5" /></svg>
                 Line
+              </button>
+              <button className="shape-opt" onClick={() => { setActiveTool('triangle'); setShapesOpen(false) }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><path d="M12 4 L4 20 L20 20 Z" /></svg>
+                Triangle
+              </button>
+              <button className="shape-opt" onClick={() => { setActiveTool('arrow'); setShapesOpen(false) }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="20" x2="20" y2="4" /><polyline points="13 4 20 4 20 11" /></svg>
+                Arrow
+              </button>
+              <button className="shape-opt" onClick={() => { setActiveTool('star'); setShapesOpen(false) }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><polygon points="12 2 14.6 9 22 9 16 13.5 18.2 21 12 16.5 5.8 21 8 13.5 2 9 9.4 9" /></svg>
+                Star
               </button>
             </div>
           </AnchoredPopover>
@@ -233,6 +271,33 @@ export default function Board() {
               <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.13-9.36L23 10" />
             </svg>
           </button>
+
+          <div className="tool-divider" />
+
+          <button
+            className={'tool-btn' + (clearVote ? ' disabled' : '')}
+            title="Clear canvas"
+            onClick={startClearVote}
+            disabled={!!clearVote}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+              <path d="M10 11v6" /><path d="M14 11v6" />
+              <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
+            </svg>
+          </button>
+          <button
+            className="tool-btn"
+            title="Export as PNG"
+            onClick={handleExportPng}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </button>
         </div>
 
         <div
@@ -252,6 +317,26 @@ export default function Board() {
           />
           {drawables.length === 0 && Object.keys(liveDrawables).length === 0 && (
             <span className="board-overlay-text">Select a tool and start drawing</span>
+          )}
+          {clearVote && (
+            <div className="clear-vote-banner" role="dialog" aria-live="polite">
+              <div className="clear-vote-text">
+                <strong>{clearVote.initiatorName}</strong>
+                {isInitiator ? ' is asking to clear the canvas' : ' wants to clear the canvas'}
+                <span className="clear-vote-count"> ({clearVote.approvals}/{clearVote.threshold})</span>
+              </div>
+              {!isInitiator && !clearVote.hasVoted && (
+                <div className="clear-vote-actions">
+                  <button className="clear-vote-btn approve" onClick={() => respondClearVote(true)}>Approve</button>
+                  <button className="clear-vote-btn reject" onClick={() => respondClearVote(false)}>Reject</button>
+                </div>
+              )}
+              {(isInitiator || clearVote.hasVoted) && (
+                <div className="clear-vote-actions">
+                  <button className="clear-vote-btn reject" onClick={() => respondClearVote(false)}>Cancel</button>
+                </div>
+              )}
+            </div>
           )}
           <RemoteCursors width={canvasSize.w} height={canvasSize.h} />
         </div>

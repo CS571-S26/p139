@@ -21,9 +21,16 @@ const COLORS = [
   '#5b8af5', '#f5715b', '#5bf5a3', '#f5d45b',
   '#c45bf5', '#5bf5f0', '#f57eab', '#8af55b'
 ];
-const MAX_USERS = 8;
+const MAX_USERS = 5;
 const MAX_DRAWABLES = 5000;
-const ALLOWED_TOOLS = new Set(['pen', 'eraser', 'rect', 'circle', 'line']);
+const ALLOWED_TOOLS = new Set(['pen', 'eraser', 'rect', 'circle', 'line', 'triangle', 'arrow', 'star']);
+const CLEAR_VOTE_TIMEOUT_MS = 30000;
+
+function clearVoteThreshold(userCount) {
+  if (userCount <= 1) return 1;
+  if (userCount === 2) return 2;
+  return Math.ceil((userCount * 2) / 3);
+}
 
 function validPoint(p) {
   return p && typeof p.nx === 'number' && typeof p.ny === 'number'
@@ -213,14 +220,89 @@ io.on('connection', (socket) => {
     io.to(code).emit('draw-add', { drawable });
   });
 
-  socket.on('draw-clear', () => {
+  function performClear(code, room) {
+    room.drawables.length = 0;
+    room.inProgress.clear();
+    io.to(code).emit('draw-clear');
+  }
+
+  function cancelClearVote(code, room, reason) {
+    if (!room.pendingClearVote) return;
+    if (room.pendingClearVote.timeoutId) clearTimeout(room.pendingClearVote.timeoutId);
+    room.pendingClearVote = null;
+    io.to(code).emit('clear-vote-cancelled', { reason: reason || 'cancelled' });
+  }
+
+  socket.on('clear-vote-start', () => {
     const code = socketRooms.get(socket.id);
     if (!code) return;
     const room = rooms.get(code);
     if (!room) return;
-    room.drawables.length = 0;
-    room.inProgress.clear();
-    io.to(code).emit('draw-clear');
+    if (room.pendingClearVote) return; // already voting
+
+    const initiator = room.users.get(socket.id);
+    if (!initiator) return;
+
+    // Solo room: clear immediately, no vote
+    if (room.users.size <= 1) {
+      performClear(code, room);
+      return;
+    }
+
+    const threshold = clearVoteThreshold(room.users.size);
+    const approvals = new Set([socket.id]);
+    const timeoutId = setTimeout(() => {
+      const r = rooms.get(code);
+      if (r && r.pendingClearVote) cancelClearVote(code, r, 'timeout');
+    }, CLEAR_VOTE_TIMEOUT_MS);
+
+    room.pendingClearVote = {
+      initiatorSocketId: socket.id,
+      initiatorName: initiator.name,
+      approvals,
+      threshold,
+      timeoutId
+    };
+
+    io.to(code).emit('clear-vote-pending', {
+      initiatorSocketId: socket.id,
+      initiatorName: initiator.name,
+      approvals: approvals.size,
+      total: room.users.size,
+      threshold
+    });
+  });
+
+  socket.on('clear-vote-respond', ({ approve } = {}) => {
+    const code = socketRooms.get(socket.id);
+    if (!code) return;
+    const room = rooms.get(code);
+    if (!room || !room.pendingClearVote) return;
+    if (!room.users.has(socket.id)) return;
+    if (room.pendingClearVote.approvals.has(socket.id)) return; // already voted
+
+    if (approve === false) {
+      cancelClearVote(code, room, 'rejected');
+      return;
+    }
+
+    room.pendingClearVote.approvals.add(socket.id);
+
+    if (room.pendingClearVote.approvals.size >= room.pendingClearVote.threshold) {
+      if (room.pendingClearVote.timeoutId) clearTimeout(room.pendingClearVote.timeoutId);
+      room.pendingClearVote = null;
+      io.to(code).emit('clear-vote-passed');
+      performClear(code, room);
+      return;
+    }
+
+    io.to(code).emit('clear-vote-pending', {
+      initiatorSocketId: room.pendingClearVote.initiatorSocketId,
+      initiatorName: room.pendingClearVote.initiatorName,
+      approvals: room.pendingClearVote.approvals.size,
+      total: room.users.size,
+      threshold: room.pendingClearVote.threshold
+    });
   });
 
   socket.on('disconnect', () => {
@@ -242,7 +324,40 @@ io.on('connection', (socket) => {
     }
 
     room.users.delete(socket.id);
+
+    // Clean up any pending clear vote affected by this leaving user
+    if (room.pendingClearVote) {
+      room.pendingClearVote.approvals.delete(socket.id);
+      const initiatorLeft = room.pendingClearVote.initiatorSocketId === socket.id;
+      const stillHasVoters = room.users.size > 0;
+      if (initiatorLeft || !stillHasVoters) {
+        cancelClearVote(code, room, 'cancelled');
+      } else {
+        // Recompute threshold based on new user count
+        const newThreshold = clearVoteThreshold(room.users.size);
+        room.pendingClearVote.threshold = newThreshold;
+        if (room.pendingClearVote.approvals.size >= newThreshold) {
+          if (room.pendingClearVote.timeoutId) clearTimeout(room.pendingClearVote.timeoutId);
+          const pending = room.pendingClearVote;
+          room.pendingClearVote = null;
+          io.to(code).emit('clear-vote-passed');
+          performClear(code, room);
+        } else {
+          io.to(code).emit('clear-vote-pending', {
+            initiatorSocketId: room.pendingClearVote.initiatorSocketId,
+            initiatorName: room.pendingClearVote.initiatorName,
+            approvals: room.pendingClearVote.approvals.size,
+            total: room.users.size,
+            threshold: newThreshold
+          });
+        }
+      }
+    }
+
     if (room.users.size === 0) {
+      if (room.pendingClearVote && room.pendingClearVote.timeoutId) {
+        clearTimeout(room.pendingClearVote.timeoutId);
+      }
       rooms.delete(code);
     } else {
       io.to(code).emit('user-left', { socketId: socket.id });

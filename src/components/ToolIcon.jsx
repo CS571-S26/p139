@@ -18,6 +18,12 @@ export default function ToolIcon({ tool }) {
       return <svg {...common}><circle cx="12" cy="12" r="9" /></svg>
     case 'line':
       return <svg {...common}><line x1="5" y1="19" x2="19" y2="5" /></svg>
+    case 'triangle':
+      return <svg {...common}><path d="M12 4 L4 20 L20 20 Z" /></svg>
+    case 'arrow':
+      return <svg {...common}><line x1="4" y1="20" x2="20" y2="4" /><polyline points="13 4 20 4 20 11" /></svg>
+    case 'star':
+      return <svg {...common}><polygon points="12 2 14.6 9 22 9 16 13.5 18.2 21 12 16.5 5.8 21 8 13.5 2 9 9.4 9" /></svg>
     default:
       return null
   }

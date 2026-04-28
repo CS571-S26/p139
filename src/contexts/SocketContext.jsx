@@ -22,6 +22,7 @@ export default function SocketProvider({ children }) {
   const [liveDrawables, setLiveDrawables] = useState({})
   const [undoStack, setUndoStack] = useState([])
   const [redoStack, setRedoStack] = useState([])
+  const [clearVote, setClearVote] = useState(null) // { initiatorSocketId, initiatorName, approvals, total, threshold, hasVoted } | null
 
   function getSocket() {
     if (!socketRef.current) {
@@ -107,6 +108,15 @@ export default function SocketProvider({ children }) {
         setLiveDrawables({})
         setUndoStack([])
         setRedoStack([])
+      })
+      s.on('clear-vote-pending', (info) => {
+        setClearVote(prev => ({ ...info, hasVoted: prev?.hasVoted || false }))
+      })
+      s.on('clear-vote-passed', () => {
+        setClearVote(null)
+      })
+      s.on('clear-vote-cancelled', () => {
+        setClearVote(null)
       })
       s.on('room-error', ({ message }) => {
         setError(message)
@@ -215,13 +225,18 @@ export default function SocketProvider({ children }) {
     s.emit('draw-redo', { drawable: d })
   }
 
-  function sendDrawClear() {
+  function startClearVote() {
     const s = socketRef.current
     if (!s || !s.connected) return
-    s.emit('draw-clear')
-    // Optimistic local clear
-    setDrawables([])
-    setLiveDrawables({})
+    setClearVote(prev => prev ? { ...prev, hasVoted: true } : prev)
+    s.emit('clear-vote-start')
+  }
+
+  function respondClearVote(approve) {
+    const s = socketRef.current
+    if (!s || !s.connected) return
+    setClearVote(prev => prev ? { ...prev, hasVoted: true } : prev)
+    s.emit('clear-vote-respond', { approve: !!approve })
   }
 
   const leaveRoom = useCallback(() => {
@@ -237,6 +252,7 @@ export default function SocketProvider({ children }) {
     setLiveDrawables({})
     setUndoStack([])
     setRedoStack([])
+    setClearVote(null)
   }, [])
 
   useEffect(() => {
@@ -249,7 +265,7 @@ export default function SocketProvider({ children }) {
   }, [])
 
   return (
-    <Ctx.Provider value={{ roomCode, users, currentUser, error, connected, remoteCursors, drawables, liveDrawables, canUndo: undoStack.length > 0, canRedo: redoStack.length > 0, createRoom, joinRoom, leaveRoom, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, sendDrawClear, undo, redo }}>
+    <Ctx.Provider value={{ roomCode, users, currentUser, error, connected, remoteCursors, drawables, liveDrawables, canUndo: undoStack.length > 0, canRedo: redoStack.length > 0, clearVote, createRoom, joinRoom, leaveRoom, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, startClearVote, respondClearVote, undo, redo }}>
       {children}
     </Ctx.Provider>
   )
