@@ -1,9 +1,49 @@
-import { forwardRef, useEffect, useRef } from 'react'
+import { forwardRef, useEffect, useRef, useState } from 'react'
 import { useSocket } from '../contexts/SocketContext'
 
-function drawDrawable(ctx, d, W, H) {
+function drawDrawable(ctx, d, W, H, imageCache, onImageLoad) {
   if (!d.points || d.points.length === 0) return
   const px = (n) => n * W, py = (n) => n * H
+
+  // Text — single point, no stroke setup
+  if (d.tool === 'text') {
+    if (!d.text) return
+    ctx.save()
+    const fontSize = Math.max(d.size * 4, 14)
+    ctx.font = `${fontSize}px 'Outfit', sans-serif`
+    ctx.fillStyle = d.color
+    ctx.textBaseline = 'top'
+    ctx.fillText(d.text, px(d.points[0].nx), py(d.points[0].ny))
+    ctx.restore()
+    return
+  }
+
+  // Image — single point (top-left), normalized width/height
+  if (d.tool === 'image') {
+    if (!d.dataUrl || !imageCache) return
+    let entry = imageCache.get(d.id)
+    if (!entry) {
+      const img = new Image()
+      img.onload = () => { imageCache.set(d.id, img); onImageLoad?.() }
+      img.onerror = () => { imageCache.set(d.id, 'error') }
+      img.src = d.dataUrl
+      imageCache.set(d.id, 'loading')
+      entry = 'loading'
+    }
+    if (entry instanceof HTMLImageElement) {
+      ctx.save()
+      ctx.drawImage(
+        entry,
+        px(d.points[0].nx),
+        py(d.points[0].ny),
+        (d.width || 0.3) * W,
+        (d.height || 0.3) * H
+      )
+      ctx.restore()
+    }
+    return
+  }
+
   ctx.save()
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
@@ -109,6 +149,8 @@ function drawDrawable(ctx, d, W, H) {
 const DrawLayer = forwardRef(function DrawLayer({ width, height, ...handlers }, ref) {
   const internalRef = useRef(null)
   const canvasRef = ref || internalRef
+  const imageCacheRef = useRef(new Map())
+  const [imgVersion, setImgVersion] = useState(0)
   const { drawables, liveDrawables } = useSocket()
 
   useEffect(() => {
@@ -120,9 +162,10 @@ const DrawLayer = forwardRef(function DrawLayer({ width, height, ...handlers }, 
     }
     const ctx = canvas.getContext('2d')
     ctx.clearRect(0, 0, width, height)
-    for (const d of drawables) drawDrawable(ctx, d, width, height)
-    for (const id in liveDrawables) drawDrawable(ctx, liveDrawables[id], width, height)
-  }, [drawables, liveDrawables, width, height, canvasRef])
+    const onImgLoad = () => setImgVersion(v => v + 1)
+    for (const d of drawables) drawDrawable(ctx, d, width, height, imageCacheRef.current, onImgLoad)
+    for (const id in liveDrawables) drawDrawable(ctx, liveDrawables[id], width, height, imageCacheRef.current, onImgLoad)
+  }, [drawables, liveDrawables, width, height, canvasRef, imgVersion])
 
   return <canvas ref={canvasRef} {...handlers} />
 })

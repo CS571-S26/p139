@@ -24,6 +24,10 @@ export default function ToolIcon({ tool }) {
       return <svg {...common}><line x1="4" y1="20" x2="20" y2="4" /><polyline points="13 4 20 4 20 11" /></svg>
     case 'star':
       return <svg {...common}><polygon points="12 2 14.6 9 22 9 16 13.5 18.2 21 12 16.5 5.8 21 8 13.5 2 9 9.4 9" /></svg>
+    case 'text':
+      return <svg {...common}><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" /></svg>
+    case 'image':
+      return <svg {...common}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
     default:
       return null
   }

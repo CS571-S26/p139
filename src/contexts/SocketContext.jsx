@@ -23,6 +23,9 @@ export default function SocketProvider({ children }) {
   const [undoStack, setUndoStack] = useState([])
   const [redoStack, setRedoStack] = useState([])
   const [clearVote, setClearVote] = useState(null) // { initiatorSocketId, initiatorName, approvals, total, threshold, hasVoted } | null
+  const [messages, setMessages] = useState([]) // chat history
+  const [unreadCount, setUnreadCount] = useState(0) // bumped on incoming msg, cleared by markChatRead
+  const chatOpenRef = useRef(false)
 
   function getSocket() {
     if (!socketRef.current) {
@@ -34,7 +37,7 @@ export default function SocketProvider({ children }) {
         setUsers([])
         setCurrentUser(null)
       })
-      s.on('room-created', ({ roomCode: code, user, users: u, drawables: d }) => {
+      s.on('room-created', ({ roomCode: code, user, users: u, drawables: d, chatHistory }) => {
         setRoomCode(code)
         setCurrentUser(user)
         setUsers(u)
@@ -42,9 +45,11 @@ export default function SocketProvider({ children }) {
         setLiveDrawables({})
         setUndoStack([])
         setRedoStack([])
+        setMessages(chatHistory || [])
+        setUnreadCount(0)
         setError(null)
       })
-      s.on('room-joined', ({ roomCode: code, user, users: u, drawables: d }) => {
+      s.on('room-joined', ({ roomCode: code, user, users: u, drawables: d, chatHistory }) => {
         setRoomCode(code)
         setCurrentUser(user)
         setUsers(u)
@@ -52,6 +57,8 @@ export default function SocketProvider({ children }) {
         setLiveDrawables({})
         setUndoStack([])
         setRedoStack([])
+        setMessages(chatHistory || [])
+        setUnreadCount(0)
         setError(null)
       })
       s.on('user-joined', ({ user }) => {
@@ -117,6 +124,10 @@ export default function SocketProvider({ children }) {
       })
       s.on('clear-vote-cancelled', () => {
         setClearVote(null)
+      })
+      s.on('chat-message', (msg) => {
+        setMessages(prev => [...prev, msg])
+        if (!chatOpenRef.current) setUnreadCount(prev => prev + 1)
       })
       s.on('room-error', ({ message }) => {
         setError(message)
@@ -225,6 +236,32 @@ export default function SocketProvider({ children }) {
     s.emit('draw-redo', { drawable: d })
   }
 
+  function sendDrawableAdd(drawable) {
+    const s = socketRef.current
+    if (!s || !s.connected || !currentUser) return
+    // Local echo
+    const localId = currentUser.socketId + ':' + drawable.id
+    const local = { ...drawable, id: localId, socketId: currentUser.socketId }
+    setDrawables(prev => [...prev, local])
+    setUndoStack(prev => [...prev, localId])
+    setRedoStack([])
+    s.emit('drawable-add', { drawable })
+    return localId
+  }
+
+  function sendChat(text) {
+    const s = socketRef.current
+    if (!s || !s.connected) return
+    const trimmed = (text || '').trim()
+    if (!trimmed) return
+    s.emit('chat-send', { text: trimmed.slice(0, 400) })
+  }
+
+  function setChatOpen(open) {
+    chatOpenRef.current = !!open
+    if (open) setUnreadCount(0)
+  }
+
   function startClearVote() {
     const s = socketRef.current
     if (!s || !s.connected) return
@@ -253,6 +290,9 @@ export default function SocketProvider({ children }) {
     setUndoStack([])
     setRedoStack([])
     setClearVote(null)
+    setMessages([])
+    setUnreadCount(0)
+    chatOpenRef.current = false
   }, [])
 
   useEffect(() => {
@@ -265,7 +305,7 @@ export default function SocketProvider({ children }) {
   }, [])
 
   return (
-    <Ctx.Provider value={{ roomCode, users, currentUser, error, connected, remoteCursors, drawables, liveDrawables, canUndo: undoStack.length > 0, canRedo: redoStack.length > 0, clearVote, createRoom, joinRoom, leaveRoom, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, startClearVote, respondClearVote, undo, redo }}>
+    <Ctx.Provider value={{ roomCode, users, currentUser, error, connected, remoteCursors, drawables, liveDrawables, canUndo: undoStack.length > 0, canRedo: redoStack.length > 0, clearVote, messages, unreadCount, createRoom, joinRoom, leaveRoom, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, sendDrawableAdd, sendChat, setChatOpen, startClearVote, respondClearVote, undo, redo }}>
       {children}
     </Ctx.Provider>
   )

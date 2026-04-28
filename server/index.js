@@ -23,8 +23,12 @@ const COLORS = [
 ];
 const MAX_USERS = 5;
 const MAX_DRAWABLES = 5000;
-const ALLOWED_TOOLS = new Set(['pen', 'eraser', 'rect', 'circle', 'line', 'triangle', 'arrow', 'star']);
+const ALLOWED_TOOLS = new Set(['pen', 'eraser', 'rect', 'circle', 'line', 'triangle', 'arrow', 'star', 'text', 'image']);
 const CLEAR_VOTE_TIMEOUT_MS = 30000;
+const MAX_TEXT_LEN = 500;
+const MAX_IMAGE_DATAURL_LEN = 1_200_000; // ~900KB after base64; client should compress below this
+const MAX_CHAT_LEN = 400;
+const MAX_CHAT_HISTORY = 100;
 
 function clearVoteThreshold(userCount) {
   if (userCount <= 1) return 1;
@@ -65,7 +69,7 @@ io.on('connection', (socket) => {
     const user = { name: name.trim().slice(0, 20), color: pickColor(null), socketId: socket.id, tool: 'pen' };
     const users = new Map();
     users.set(socket.id, user);
-    rooms.set(code, { users, drawables: [], inProgress: new Map() });
+    rooms.set(code, { users, drawables: [], inProgress: new Map(), chatHistory: [] });
     socketRooms.set(socket.id, code);
     socket.join(code);
 
@@ -73,7 +77,8 @@ io.on('connection', (socket) => {
       roomCode: code,
       user,
       users: [...users.values()],
-      drawables: []
+      drawables: [],
+      chatHistory: []
     });
   });
 
@@ -104,7 +109,8 @@ io.on('connection', (socket) => {
       roomCode: code,
       user,
       users: [...room.users.values()],
-      drawables: [...room.drawables]
+      drawables: [...room.drawables],
+      chatHistory: [...(room.chatHistory || [])]
     });
 
     socket.to(code).emit('user-joined', { user });
@@ -134,6 +140,8 @@ io.on('connection', (socket) => {
     if (!room) return;
     if (!msg || typeof msg.id !== 'string') return;
     if (!ALLOWED_TOOLS.has(msg.tool)) return;
+    // Text and image use the commit flow, not the live-stroke flow
+    if (msg.tool === 'text' || msg.tool === 'image') return;
     if (typeof msg.color !== 'string' || msg.color.length > 9) return;
     if (typeof msg.size !== 'number' || msg.size < 1 || msg.size > 64) return;
     if (!validPoint(msg.point)) return;
@@ -218,6 +226,67 @@ io.on('connection', (socket) => {
       room.drawables.splice(0, room.drawables.length - MAX_DRAWABLES);
     }
     io.to(code).emit('draw-add', { drawable });
+  });
+
+  socket.on('drawable-add', ({ drawable } = {}) => {
+    const code = socketRooms.get(socket.id);
+    if (!code) return;
+    const room = rooms.get(code);
+    if (!room) return;
+    if (!drawable || typeof drawable.id !== 'string') return;
+    if (!ALLOWED_TOOLS.has(drawable.tool)) return;
+    if (typeof drawable.color !== 'string' || drawable.color.length > 9) return;
+    if (typeof drawable.size !== 'number' || drawable.size < 1 || drawable.size > 64) return;
+    if (!Array.isArray(drawable.points) || drawable.points.length === 0) return;
+    for (const p of drawable.points) if (!validPoint(p)) return;
+
+    if (drawable.tool === 'text') {
+      if (typeof drawable.text !== 'string') return;
+      if (drawable.text.length === 0 || drawable.text.length > MAX_TEXT_LEN) return;
+    } else if (drawable.tool === 'image') {
+      if (typeof drawable.dataUrl !== 'string') return;
+      if (!drawable.dataUrl.startsWith('data:image/')) return;
+      if (drawable.dataUrl.length > MAX_IMAGE_DATAURL_LEN) return;
+      if (typeof drawable.width !== 'number' || drawable.width <= 0 || drawable.width > 1.5) return;
+      if (typeof drawable.height !== 'number' || drawable.height <= 0 || drawable.height > 1.5) return;
+    } else {
+      // Only text and image are supposed to use the commit flow
+      return;
+    }
+
+    const safeId = socket.id + ':' + drawable.id.slice(0, 64);
+    const safeDrawable = { ...drawable, id: safeId, socketId: socket.id };
+    if (room.drawables.some(d => d.id === safeId)) return;
+    room.drawables.push(safeDrawable);
+    if (room.drawables.length > MAX_DRAWABLES) {
+      room.drawables.splice(0, room.drawables.length - MAX_DRAWABLES);
+    }
+    io.to(code).emit('draw-add', { drawable: safeDrawable });
+  });
+
+  socket.on('chat-send', ({ text } = {}) => {
+    const code = socketRooms.get(socket.id);
+    if (!code) return;
+    const room = rooms.get(code);
+    if (!room) return;
+    if (typeof text !== 'string') return;
+    const trimmed = text.trim().slice(0, MAX_CHAT_LEN);
+    if (!trimmed) return;
+    const user = room.users.get(socket.id);
+    if (!user) return;
+    const msg = {
+      socketId: socket.id,
+      name: user.name,
+      color: user.color,
+      text: trimmed,
+      timestamp: Date.now()
+    };
+    if (!room.chatHistory) room.chatHistory = [];
+    room.chatHistory.push(msg);
+    if (room.chatHistory.length > MAX_CHAT_HISTORY) {
+      room.chatHistory.splice(0, room.chatHistory.length - MAX_CHAT_HISTORY);
+    }
+    io.to(code).emit('chat-message', msg);
   });
 
   function performClear(code, room) {
