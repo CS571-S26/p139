@@ -57,7 +57,7 @@ const socketRooms = new Map();
 app.get('/', (_req, res) => res.json({ status: 'ok' }));
 
 io.on('connection', (socket) => {
-  socket.on('create-room', ({ name }) => {
+  socket.on('create-room', ({ name, isPublic } = {}) => {
     if (!name || typeof name !== 'string') {
       socket.emit('room-error', { message: 'Name is required.' });
       return;
@@ -66,10 +66,19 @@ io.on('connection', (socket) => {
     let code;
     do { code = genCode(); } while (rooms.has(code));
 
-    const user = { name: name.trim().slice(0, 20), color: pickColor(null), socketId: socket.id, tool: 'pen' };
+    const cleanName = name.trim().slice(0, 20);
+    const user = { name: cleanName, color: pickColor(null), socketId: socket.id, tool: 'pen' };
     const users = new Map();
     users.set(socket.id, user);
-    rooms.set(code, { users, drawables: [], inProgress: new Map(), chatHistory: [] });
+    rooms.set(code, {
+      users,
+      drawables: [],
+      inProgress: new Map(),
+      chatHistory: [],
+      isPublic: !!isPublic,
+      hostName: cleanName,
+      createdAt: Date.now()
+    });
     socketRooms.set(socket.id, code);
     socket.join(code);
 
@@ -78,8 +87,42 @@ io.on('connection', (socket) => {
       user,
       users: [...users.values()],
       drawables: [],
-      chatHistory: []
+      chatHistory: [],
+      isPublic: !!isPublic
     });
+  });
+
+  socket.on('join-public-room', ({ name } = {}) => {
+    if (!name || typeof name !== 'string') {
+      socket.emit('room-error', { message: 'Name is required.' });
+      return;
+    }
+    const candidates = [];
+    for (const [code, room] of rooms) {
+      if (!room.isPublic) continue;
+      if (room.users.size === 0 || room.users.size >= MAX_USERS) continue;
+      candidates.push(code);
+    }
+    if (candidates.length === 0) {
+      socket.emit('room-error', { message: 'No public rooms available. Try creating one.' });
+      return;
+    }
+    const code = candidates[Math.floor(Math.random() * candidates.length)];
+    const room = rooms.get(code);
+    const color = pickColor(room);
+    const user = { name: name.trim().slice(0, 20), color, socketId: socket.id, tool: 'pen' };
+    room.users.set(socket.id, user);
+    socketRooms.set(socket.id, code);
+    socket.join(code);
+
+    socket.emit('room-joined', {
+      roomCode: code,
+      user,
+      users: [...room.users.values()],
+      drawables: [...room.drawables],
+      chatHistory: [...(room.chatHistory || [])]
+    });
+    socket.to(code).emit('user-joined', { user });
   });
 
   socket.on('join-room', ({ name, roomCode }) => {

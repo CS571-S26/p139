@@ -137,11 +137,11 @@ export default function SocketProvider({ children }) {
     return socketRef.current
   }
 
-  function createRoom(name) {
+  function createRoom(name, isPublic = false) {
     setError(null)
     const s = getSocket()
     if (!s.connected) s.connect()
-    s.emit('create-room', { name })
+    s.emit('create-room', { name, isPublic: !!isPublic })
   }
 
   function joinRoom(name, code) {
@@ -149,6 +149,13 @@ export default function SocketProvider({ children }) {
     const s = getSocket()
     if (!s.connected) s.connect()
     s.emit('join-room', { name, roomCode: code })
+  }
+
+  function joinPublicRoom(name) {
+    setError(null)
+    const s = getSocket()
+    if (!s.connected) s.connect()
+    s.emit('join-public-room', { name })
   }
 
   function sendCursor(nx, ny) {
@@ -305,7 +312,7 @@ export default function SocketProvider({ children }) {
   }, [])
 
   return (
-    <Ctx.Provider value={{ roomCode, users, currentUser, error, connected, remoteCursors, drawables, liveDrawables, canUndo: undoStack.length > 0, canRedo: redoStack.length > 0, clearVote, messages, unreadCount, createRoom, joinRoom, leaveRoom, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, sendDrawableAdd, sendChat, setChatOpen, startClearVote, respondClearVote, undo, redo }}>
+    <Ctx.Provider value={{ roomCode, users, currentUser, error, connected, remoteCursors, drawables, liveDrawables, canUndo: undoStack.length > 0, canRedo: redoStack.length > 0, clearVote, messages, unreadCount, createRoom, joinRoom, joinPublicRoom, leaveRoom, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, sendDrawableAdd, sendChat, setChatOpen, startClearVote, respondClearVote, undo, redo }}>
       {children}
     </Ctx.Provider>
   )
