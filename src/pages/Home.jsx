@@ -60,18 +60,23 @@ export default function Home() {
           </svg>
         </div>
         <h1 className="h1">Draw together, in real time.</h1>
-        <p className="sub">Enter a name, then create a room or jump into a public one.</p>
+        <p className="sub">Enter your name, then start or join a room.</p>
         <div className="form">
-          <input
-            ref={nameRef}
-            className="inp"
-            placeholder="Your name"
-            maxLength={20}
-            aria-label="Your name"
-            onChange={() => setError(null)}
-          />
-          {error && <p className="form-error">{error}</p>}
-          <div className="action-section">
+          <div className="field">
+            <label htmlFor="name-inp" className="lbl">Your name</label>
+            <input
+              id="name-inp"
+              ref={nameRef}
+              className="inp"
+              placeholder="e.g. Alex"
+              maxLength={20}
+              onChange={() => setError(null)}
+            />
+          </div>
+          {error && <p className="form-error" role="alert">{error}</p>}
+
+          <section className="action-card" aria-labelledby="create-title">
+            <h2 id="create-title" className="action-title">Start a room</h2>
             <div className="visibility-toggle" role="radiogroup" aria-label="Room visibility">
               <button
                 type="button"
@@ -100,21 +105,29 @@ export default function Home() {
               </button>
             </div>
             <button className="btn btn-primary" onClick={handleCreate}>Create Room</button>
+          </section>
+
+          <div className="section-divider" role="presentation" />
+
+          <section className="action-card" aria-labelledby="join-title">
+            <h2 id="join-title" className="action-title">Join a room</h2>
             <button className="btn btn-secondary" onClick={handleJoinPublic}>Join Public Room</button>
-            <div className="join-divider"><span>or</span></div>
-            <div className="join-row">
-              <input
-                ref={codeRef}
-                className="inp inp-mono"
-                placeholder="Room code"
-                maxLength={6}
-                aria-label="Room code"
-                onKeyDown={handleKeyDown}
-                onChange={() => setError(null)}
-              />
-              <button className="btn btn-ghost" onClick={handleJoin}>Join</button>
+            <div className="field">
+              <label htmlFor="code-inp" className="lbl">Or enter a room code</label>
+              <div className="join-row">
+                <input
+                  id="code-inp"
+                  ref={codeRef}
+                  className="inp inp-mono"
+                  placeholder="ABC123"
+                  maxLength={6}
+                  onKeyDown={handleKeyDown}
+                  onChange={() => setError(null)}
+                />
+                <button className="btn btn-ghost" onClick={handleJoin}>Join</button>
+              </div>
             </div>
-          </div>
+          </section>
         </div>
       </div>
     </>
