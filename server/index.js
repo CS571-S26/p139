@@ -3,7 +3,12 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { customAlphabet } from 'nanoid';
 import { createClient } from '@supabase/supabase-js';
-import 'dotenv/config';
+import { config as loadDotenv } from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+// Load server/.env regardless of where node was started from
+loadDotenv({ path: join(dirname(fileURLToPath(import.meta.url)), '.env') });
 
 // ── Supabase persistence (optional; degrades to in-memory only if env not set) ──
 const SUPABASE_URL = process.env.SUPABASE_URL;
