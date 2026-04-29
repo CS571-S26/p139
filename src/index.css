@@ -117,17 +117,51 @@ nav {
 .h1 { font-size: clamp(2rem, 5vw, 2.8rem); font-weight: 600; letter-spacing: -0.035em; line-height: 1.1; margin-bottom: 0.5rem; }
 .sub { color: var(--gray); font-size: 0.92rem; font-weight: 300; max-width: 440px; line-height: 1.6; margin-bottom: 1.8rem; }
 .form { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 320px; gap: 0.55rem; }
-.action-section { width: 100%; display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.5rem; }
-
-/* Form labels + grouped sections (Home page) */
-.field { display: flex; flex-direction: column; align-items: stretch; width: 100%; gap: 0.3rem; }
+/* Form labels (Home + other pages) */
+.field { display: flex; flex-direction: column; align-items: stretch; width: 100%; gap: 0.35rem; }
 .lbl { font-size: 0.78rem; font-weight: 500; color: var(--white); text-align: left; }
-.action-card { width: 100%; display: flex; flex-direction: column; gap: 0.55rem; }
-.action-title { font-size: 0.78rem; font-weight: 600; color: var(--white); text-align: left; letter-spacing: 0.02em; text-transform: uppercase; }
-.action-title-row { display: flex; align-items: center; gap: 0.5rem; }
-.action-title-row .sub-hint { font-size: 0.72rem; font-weight: 400; color: var(--gray); text-transform: none; letter-spacing: 0; }
-.section-divider { width: 100%; height: 1px; background: rgba(255,255,255,0.1); margin: 0.4rem 0; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+/* "Make public" checkbox under Create button */
+.check-row {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.78rem; color: var(--gray); cursor: pointer;
+  align-self: flex-start;
+  margin-top: -0.1rem;
+}
+.check-row input[type="checkbox"] {
+  width: 15px; height: 15px;
+  accent-color: var(--blue-deep);
+  cursor: pointer;
+  margin: 0;
+}
+.check-row:hover { color: var(--white); }
+
+/* "or join existing" divider */
+.or-divider {
+  display: flex; align-items: center; gap: 10px;
+  color: var(--gray); font-size: 0.72rem;
+  margin: 0.3rem 0 0.1rem;
+  width: 100%;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.or-divider::before, .or-divider::after {
+  content: ''; flex: 1; height: 1px;
+  background: rgba(255,255,255,0.12);
+}
+.or-divider span { white-space: nowrap; }
+
+/* Tertiary text-link action ("Drop into a random public room") */
+.link-btn {
+  background: transparent; border: none; padding: 0.5rem 0;
+  font-family: inherit; font-size: 0.82rem; font-weight: 400;
+  color: var(--blue); cursor: pointer; text-decoration: underline;
+  text-underline-offset: 3px; align-self: center;
+  transition: color 0.2s;
+}
+.link-btn:hover { color: var(--white); }
+.link-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 3px; }
 
 .inp {
   width: 100%; height: 44px;
@@ -170,39 +204,6 @@ textarea.inp { height: auto; min-height: 120px; padding: 0.7rem 0.9rem; resize: 
 .feedback-status { color: var(--dim); font-size: 0.8rem; min-height: 1.1em; margin: 0.2rem 0 0; text-align: center; }
 .feedback-status.ok { color: #5bf5a3; }
 .feedback-status.err { color: #f5715b; }
-
-/* Public/Private visibility toggle on Home page */
-.visibility-toggle {
-  display: flex; gap: 4px;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--r); padding: 4px;
-}
-.vis-opt {
-  flex: 1; height: 32px;
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  background: transparent; border: none; border-radius: 7px;
-  font-family: 'Outfit', sans-serif; font-size: 0.82rem; font-weight: 500;
-  color: var(--gray); cursor: pointer;
-  transition: all 0.15s; outline: none;
-}
-.vis-opt svg { width: 14px; height: 14px; }
-.vis-opt:hover { color: var(--white); }
-.vis-opt.active {
-  background: rgba(91,138,245,0.15);
-  color: var(--blue);
-}
-
-/* "or" divider between join methods */
-.join-divider {
-  display: flex; align-items: center; gap: 10px;
-  color: var(--dim); font-size: 0.72rem;
-  margin: 2px 0;
-}
-.join-divider::before, .join-divider::after {
-  content: ''; flex: 1; height: 1px;
-  background: rgba(255,255,255,0.08);
-}
-.join-divider span { white-space: nowrap; }
 
 /* ── Entrance Animations ── */
 @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -849,8 +850,7 @@ textarea.inp { height: auto; min-height: 120px; padding: 0.7rem 0.9rem; resize: 
   .icon svg { width: 18px; height: 18px; }
   .h1 { font-size: 1.2rem; margin-bottom: 0.3rem; }
   .sub { font-size: 0.78rem; margin-bottom: 0.7rem; }
-  .form { max-width: 320px; gap: 0.4rem; }
-  .action-section { gap: 0.4rem; margin-top: 0.3rem; }
+  .form { max-width: 320px; gap: 0.5rem; }
   .inp { height: 38px; }
   .btn { height: 38px; }
 }

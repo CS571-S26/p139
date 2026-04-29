@@ -60,7 +60,7 @@ export default function Home() {
           </svg>
         </div>
         <h1 className="h1">Draw together, in real time.</h1>
-        <p className="sub">Enter your name, then start or join a room.</p>
+        <p className="sub">Pick a name and start a room. No signup.</p>
         <div className="form">
           <div className="field">
             <label htmlFor="name-inp" className="lbl">Your name</label>
@@ -75,59 +75,35 @@ export default function Home() {
           </div>
           {error && <p className="form-error" role="alert">{error}</p>}
 
-          <section className="action-card" aria-labelledby="create-title">
-            <h2 id="create-title" className="action-title">Start a room</h2>
-            <div className="visibility-toggle" role="radiogroup" aria-label="Room visibility">
-              <button
-                type="button"
-                className={'vis-opt' + (!isPublic ? ' active' : '')}
-                onClick={() => setIsPublic(false)}
-                aria-pressed={!isPublic}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" />
-                  <path d="M7 11V7a5 5 0 0110 0v4" />
-                </svg>
-                Private
-              </button>
-              <button
-                type="button"
-                className={'vis-opt' + (isPublic ? ' active' : '')}
-                onClick={() => setIsPublic(true)}
-                aria-pressed={isPublic}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="2" y1="12" x2="22" y2="12" />
-                  <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
-                </svg>
-                Public
-              </button>
-            </div>
-            <button className="btn btn-primary" onClick={handleCreate}>Create Room</button>
-          </section>
+          <button className="btn btn-primary" onClick={handleCreate}>Create new room</button>
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={isPublic}
+              onChange={(e) => setIsPublic(e.target.checked)}
+            />
+            <span>Make public — anyone can join</span>
+          </label>
 
-          <div className="section-divider" role="presentation" />
+          <div className="or-divider"><span>or join existing</span></div>
 
-          <section className="action-card" aria-labelledby="join-title">
-            <h2 id="join-title" className="action-title">Join a room</h2>
-            <button className="btn btn-secondary" onClick={handleJoinPublic}>Join Public Room</button>
-            <div className="field">
-              <label htmlFor="code-inp" className="lbl">Or enter a room code</label>
-              <div className="join-row">
-                <input
-                  id="code-inp"
-                  ref={codeRef}
-                  className="inp inp-mono"
-                  placeholder="ABC123"
-                  maxLength={6}
-                  onKeyDown={handleKeyDown}
-                  onChange={() => setError(null)}
-                />
-                <button className="btn btn-ghost" onClick={handleJoin}>Join</button>
-              </div>
-            </div>
-          </section>
+          <div className="join-row">
+            <label htmlFor="code-inp" className="sr-only">Room code</label>
+            <input
+              id="code-inp"
+              ref={codeRef}
+              className="inp inp-mono"
+              placeholder="ABC123"
+              maxLength={6}
+              onKeyDown={handleKeyDown}
+              onChange={() => setError(null)}
+            />
+            <button className="btn btn-ghost" onClick={handleJoin}>Join</button>
+          </div>
+
+          <button type="button" className="link-btn" onClick={handleJoinPublic}>
+            Drop into a random public room
+          </button>
         </div>
       </div>
     </>
