@@ -2,6 +2,68 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { customAlphabet } from 'nanoid';
+import { createClient } from '@supabase/supabase-js';
+import 'dotenv/config';
+
+// ── Supabase persistence (optional; degrades to in-memory only if env not set) ──
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } })
+  : null;
+if (!supabase) {
+  console.log('[persistence] Supabase env not set — running with in-memory rooms only.');
+} else {
+  console.log('[persistence] Supabase client initialized.');
+}
+
+async function loadRoomFromDb(code) {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('rooms')
+    .select('code, drawables, chat_history, is_public, host_name, created_at')
+    .eq('code', code)
+    .maybeSingle();
+  if (error) {
+    console.error('[persistence] loadRoomFromDb error', code, error.message);
+    return null;
+  }
+  return data || null;
+}
+
+async function roomExistsInDb(code) {
+  if (!supabase) return false;
+  const { count, error } = await supabase
+    .from('rooms')
+    .select('code', { count: 'exact', head: true })
+    .eq('code', code);
+  if (error) {
+    console.error('[persistence] roomExistsInDb error', code, error.message);
+    return false;
+  }
+  return (count || 0) > 0;
+}
+
+async function saveRoomToDb(code, room) {
+  if (!supabase) return;
+  if (!room) return;
+  const payload = {
+    code,
+    drawables: room.drawables || [],
+    chat_history: room.chatHistory || [],
+    is_public: !!room.isPublic,
+    host_name: room.hostName || 'Anonymous',
+    last_active: new Date().toISOString()
+  };
+  // Preserve created_at by only setting it if inserting fresh
+  const { error } = await supabase.from('rooms').upsert(payload, { onConflict: 'code' });
+  if (error) console.error('[persistence] saveRoomToDb error', code, error.message);
+}
+
+function markDirty(code) {
+  const room = rooms.get(code);
+  if (room) room.dirty = true;
+}
 
 const app = express();
 const http = createServer(app);
@@ -53,18 +115,26 @@ function pickColor(room) {
 const rooms = new Map();
 // socketId -> roomCode
 const socketRooms = new Map();
+// in-memory ring of recent feedback submissions; capped at 200
+const feedbackLog = [];
 
 app.get('/', (_req, res) => res.json({ status: 'ok' }));
 
 io.on('connection', (socket) => {
-  socket.on('create-room', ({ name, isPublic } = {}) => {
+  socket.on('create-room', async ({ name, isPublic } = {}) => {
     if (!name || typeof name !== 'string') {
       socket.emit('room-error', { message: 'Name is required.' });
       return;
     }
 
+    // Find a code that isn't in memory AND isn't in the DB (saved hibernated room)
     let code;
-    do { code = genCode(); } while (rooms.has(code));
+    let tries = 0;
+    do {
+      code = genCode();
+      tries++;
+      if (tries > 10) break;
+    } while (rooms.has(code) || (await roomExistsInDb(code)));
 
     const cleanName = name.trim().slice(0, 20);
     const user = { name: cleanName, color: pickColor(null), socketId: socket.id, tool: 'pen' };
@@ -77,7 +147,8 @@ io.on('connection', (socket) => {
       chatHistory: [],
       isPublic: !!isPublic,
       hostName: cleanName,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      dirty: true
     });
     socketRooms.set(socket.id, code);
     socket.join(code);
@@ -125,13 +196,31 @@ io.on('connection', (socket) => {
     socket.to(code).emit('user-joined', { user });
   });
 
-  socket.on('join-room', ({ name, roomCode }) => {
+  socket.on('join-room', async ({ name, roomCode }) => {
     if (!name || typeof name !== 'string') {
       socket.emit('room-error', { message: 'Name is required.' });
       return;
     }
     const code = (roomCode || '').toUpperCase().trim();
-    const room = rooms.get(code);
+    let room = rooms.get(code);
+
+    // Try to hydrate from DB if not in memory
+    if (!room) {
+      const saved = await loadRoomFromDb(code);
+      if (saved) {
+        room = {
+          users: new Map(),
+          drawables: Array.isArray(saved.drawables) ? saved.drawables : [],
+          inProgress: new Map(),
+          chatHistory: Array.isArray(saved.chat_history) ? saved.chat_history : [],
+          isPublic: !!saved.is_public,
+          hostName: saved.host_name || 'Anonymous',
+          createdAt: saved.created_at ? new Date(saved.created_at).getTime() : Date.now(),
+          dirty: false
+        };
+        rooms.set(code, room);
+      }
+    }
 
     if (!room) {
       socket.emit('room-error', { message: 'Room not found.' });
@@ -237,6 +326,7 @@ io.on('connection', (socket) => {
     if (room.drawables.length > MAX_DRAWABLES) {
       room.drawables.splice(0, room.drawables.length - MAX_DRAWABLES);
     }
+    room.dirty = true;
     socket.to(code).emit('draw-end', { drawable: d });
   });
 
@@ -249,6 +339,7 @@ io.on('connection', (socket) => {
     const idx = room.drawables.findIndex(d => d.id === id && d.socketId === socket.id);
     if (idx === -1) return;
     room.drawables.splice(idx, 1);
+    room.dirty = true;
     io.to(code).emit('draw-remove', { id });
   });
 
@@ -268,6 +359,7 @@ io.on('connection', (socket) => {
     if (room.drawables.length > MAX_DRAWABLES) {
       room.drawables.splice(0, room.drawables.length - MAX_DRAWABLES);
     }
+    room.dirty = true;
     io.to(code).emit('draw-add', { drawable });
   });
 
@@ -304,6 +396,7 @@ io.on('connection', (socket) => {
     if (room.drawables.length > MAX_DRAWABLES) {
       room.drawables.splice(0, room.drawables.length - MAX_DRAWABLES);
     }
+    room.dirty = true;
     io.to(code).emit('draw-add', { drawable: safeDrawable });
   });
 
@@ -329,12 +422,36 @@ io.on('connection', (socket) => {
     if (room.chatHistory.length > MAX_CHAT_HISTORY) {
       room.chatHistory.splice(0, room.chatHistory.length - MAX_CHAT_HISTORY);
     }
+    room.dirty = true;
     io.to(code).emit('chat-message', msg);
+  });
+
+  socket.on('feedback-send', ({ name, message } = {}) => {
+    if (typeof message !== 'string') return;
+    const trimmedMsg = message.trim();
+    if (!trimmedMsg || trimmedMsg.length > 1000) {
+      socket.emit('feedback-ack', { ok: false, error: 'Message must be 1-1000 characters.' });
+      return;
+    }
+    const cleanName = (typeof name === 'string' && name.trim())
+      ? name.trim().slice(0, 30)
+      : 'Anonymous';
+    const entry = {
+      name: cleanName,
+      message: trimmedMsg,
+      timestamp: new Date().toISOString(),
+      socketId: socket.id
+    };
+    feedbackLog.push(entry);
+    if (feedbackLog.length > 200) feedbackLog.splice(0, feedbackLog.length - 200);
+    console.log('[feedback]', JSON.stringify(entry));
+    socket.emit('feedback-ack', { ok: true });
   });
 
   function performClear(code, room) {
     room.drawables.length = 0;
     room.inProgress.clear();
+    room.dirty = true;
     io.to(code).emit('draw-clear');
   }
 
@@ -417,7 +534,7 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
     const code = socketRooms.get(socket.id);
     if (!code) return;
 
@@ -470,12 +587,28 @@ io.on('connection', (socket) => {
       if (room.pendingClearVote && room.pendingClearVote.timeoutId) {
         clearTimeout(room.pendingClearVote.timeoutId);
       }
+      await saveRoomToDb(code, room);
       rooms.delete(code);
     } else {
       io.to(code).emit('user-left', { socketId: socket.id });
     }
   });
 });
+
+// Periodic save of any room with pending changes — protects against crashes mid-session.
+const SAVE_INTERVAL_MS = 30_000;
+setInterval(async () => {
+  for (const [code, room] of rooms) {
+    if (!room.dirty) continue;
+    room.dirty = false;
+    try {
+      await saveRoomToDb(code, room);
+    } catch (e) {
+      console.error('[persistence] periodic save failed', code, e?.message || e);
+      room.dirty = true; // retry on next tick
+    }
+  }
+}, SAVE_INTERVAL_MS);
 
 const PORT = process.env.PORT || 3001;
 http.listen(PORT, () => console.log(`Server running on :${PORT}`));

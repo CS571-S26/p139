@@ -138,6 +138,8 @@ nav {
 }
 .btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled:hover { background: var(--blue); box-shadow: 0 1px 4px rgba(91,138,245,0.25); }
 .btn-primary { width: 100%; background: var(--blue); color: #fff; box-shadow: 0 1px 4px rgba(91,138,245,0.25); }
 .btn-primary:hover { background: #4a7ae6; box-shadow: 0 2px 12px rgba(91,138,245,0.3); }
 .btn-secondary {
@@ -149,6 +151,13 @@ nav {
 .join-row .inp { flex: 1; }
 .btn-ghost { width: auto; padding: 0 1.1rem; background: var(--surface); color: var(--white); border: 1px solid #3a3a4e; }
 .btn-ghost:hover { border-color: #50506a; background: #141420; }
+
+/* Feedback page: textarea + counter + status */
+textarea.inp { height: auto; min-height: 120px; padding: 0.7rem 0.9rem; resize: vertical; line-height: 1.4; font-family: inherit; }
+.feedback-counter { color: var(--dim); font-size: 0.72rem; align-self: flex-end; margin-top: -0.2rem; }
+.feedback-status { color: var(--dim); font-size: 0.8rem; min-height: 1.1em; margin: 0.2rem 0 0; text-align: center; }
+.feedback-status.ok { color: #5bf5a3; }
+.feedback-status.err { color: #f5715b; }
 
 /* Public/Private visibility toggle on Home page */
 .visibility-toggle {

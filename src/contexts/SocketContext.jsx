@@ -283,6 +283,24 @@ export default function SocketProvider({ children }) {
     s.emit('clear-vote-respond', { approve: !!approve })
   }
 
+  function sendFeedback({ name, message }) {
+    return new Promise((resolve) => {
+      const s = getSocket()
+      if (!s.connected) s.connect()
+      let done = false
+      const finish = (result) => {
+        if (done) return
+        done = true
+        s.off('feedback-ack', onAck)
+        resolve(result)
+      }
+      const onAck = (result) => finish(result || { ok: false, error: 'No response' })
+      s.once('feedback-ack', onAck)
+      setTimeout(() => finish({ ok: false, error: 'Timed out' }), 8000)
+      s.emit('feedback-send', { name, message })
+    })
+  }
+
   const leaveRoom = useCallback(() => {
     if (socketRef.current) {
       socketRef.current.disconnect()
@@ -312,7 +330,7 @@ export default function SocketProvider({ children }) {
   }, [])
 
   return (
-    <Ctx.Provider value={{ roomCode, users, currentUser, error, connected, remoteCursors, drawables, liveDrawables, canUndo: undoStack.length > 0, canRedo: redoStack.length > 0, clearVote, messages, unreadCount, createRoom, joinRoom, joinPublicRoom, leaveRoom, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, sendDrawableAdd, sendChat, setChatOpen, startClearVote, respondClearVote, undo, redo }}>
+    <Ctx.Provider value={{ roomCode, users, currentUser, error, connected, remoteCursors, drawables, liveDrawables, canUndo: undoStack.length > 0, canRedo: redoStack.length > 0, clearVote, messages, unreadCount, createRoom, joinRoom, joinPublicRoom, leaveRoom, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, sendDrawableAdd, sendChat, setChatOpen, startClearVote, respondClearVote, sendFeedback, undo, redo }}>
       {children}
     </Ctx.Provider>
   )

@@ -5,6 +5,7 @@ import BackgroundAnimation from './components/BackgroundAnimation'
 import Home from './pages/Home'
 import Board from './pages/Board'
 import About from './pages/About'
+import Feedback from './pages/Feedback'
 
 export default function App() {
   const location = useLocation()
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/board" element={<Board />} />
         <Route path="/about" element={<About />} />
+        <Route path="/feedback" element={<Feedback />} />
       </Routes>
     </>
   )

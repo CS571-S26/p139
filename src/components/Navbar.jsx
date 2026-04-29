@@ -59,6 +59,14 @@ export default function Navbar() {
           <NavLink to="/about" className={({ isActive }) => `nl${isActive ? ' on' : ''}`}>
             About
           </NavLink>
+          <NavLink to="/feedback" className={({ isActive }) => `nl${isActive ? ' on' : ''}`}>
+            Feedback
+          </NavLink>
+          {roomCode && (
+            <NavLink to="/board" className={({ isActive }) => `nl${isActive ? ' on' : ''}`}>
+              Board
+            </NavLink>
+          )}
         </div>
       )}
 
