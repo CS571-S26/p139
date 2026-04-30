@@ -117,13 +117,16 @@ export default function BackgroundAnimation() {
     }
     function genCat(cx, cy, s) {
       return [
-        circ(cx, cy + s * .15, s * .4, 28),
-        circ(cx, cy - s * .3, s * .26, 20),
-        [{ x: cx - s * .18, y: cy - s * .48 }, { x: cx - s * .29, y: cy - s * .7 }, { x: cx - s * .04, y: cy - s * .53 }],
-        [{ x: cx + s * .18, y: cy - s * .48 }, { x: cx + s * .29, y: cy - s * .7 }, { x: cx + s * .04, y: cy - s * .53 }],
-        arc(cx + s * .58, cy + s * .08, s * .28, Math.PI * .72, -Math.PI * .72, 18),
-        [{ x: cx - s * .14, y: cy + s * .52 }, { x: cx - s * .14, y: cy + s * .78 }],
-        [{ x: cx + s * .14, y: cy + s * .52 }, { x: cx + s * .14, y: cy + s * .78 }]
+        circ(cx, cy, s * .42, 28),
+        [{ x: cx - s * .24, y: cy - s * .34 }, { x: cx - s * .38, y: cy - s * .66 }, { x: cx - s * .05, y: cy - s * .42 }],
+        [{ x: cx + s * .24, y: cy - s * .34 }, { x: cx + s * .38, y: cy - s * .66 }, { x: cx + s * .05, y: cy - s * .42 }],
+        circ(cx - s * .15, cy - s * .08, s * .035, 6),
+        circ(cx + s * .15, cy - s * .08, s * .035, 6),
+        [{ x: cx, y: cy + s * .02 }, { x: cx - s * .05, y: cy + s * .08 }, { x: cx + s * .05, y: cy + s * .08 }, { x: cx, y: cy + s * .02 }],
+        [{ x: cx - s * .08, y: cy + s * .12 }, { x: cx - s * .38, y: cy + s * .04 }],
+        [{ x: cx - s * .08, y: cy + s * .16 }, { x: cx - s * .38, y: cy + s * .18 }],
+        [{ x: cx + s * .08, y: cy + s * .12 }, { x: cx + s * .38, y: cy + s * .04 }],
+        [{ x: cx + s * .08, y: cy + s * .16 }, { x: cx + s * .38, y: cy + s * .18 }]
       ];
     }
     function genBoat(cx, cy, s) {
@@ -150,16 +153,13 @@ export default function BackgroundAnimation() {
     function genCrown(cx, cy, s) {
       return [[{ x: cx - s * .4, y: cy + s * .2 }, { x: cx - s * .4, y: cy - s * .1 }, { x: cx - s * .2, y: cy + s * .05 }, { x: cx, y: cy - s * .3 }, { x: cx + s * .2, y: cy + s * .05 }, { x: cx + s * .4, y: cy - s * .1 }, { x: cx + s * .4, y: cy + s * .2 }, { x: cx - s * .4, y: cy + s * .2 }]];
     }
-    function genDiamond(cx, cy, s) {
-      return [[{ x: cx, y: cy - s * .5 }, { x: cx + s * .4, y: cy }, { x: cx, y: cy + s * .5 }, { x: cx - s * .4, y: cy }, { x: cx, y: cy - s * .5 }], [{ x: cx - s * .4, y: cy }, { x: cx, y: cy - s * .15 }, { x: cx + s * .4, y: cy }]];
-    }
     function genSpiral(cx, cy, s) {
       const p = [];
       for (let i = 0; i <= 50; i++) { const a = i * .25, r = i / 50 * s; p.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r }); }
       return [p];
     }
 
-    const allShapes = [genSmiley, genHeart, genStar, genStickman, genHouse, genTree, genSun, genFlower, genCat, genBoat, genBird, genMusic, genBalloon, genFish, genButterfly, genRocket, genCrown, genDiamond, genSpiral];
+    const allShapes = [genSmiley, genHeart, genStar, genStickman, genHouse, genTree, genSun, genFlower, genCat, genBoat, genBird, genMusic, genBalloon, genFish, genButterfly, genRocket, genCrown, genSpiral];
 
     // ── 6 Scene generators ──
     function sceneHouseyard(cx, cy, s) { return [{ gi: 0, st: genHouse(cx - s * .3, cy, s) }, { gi: 1, st: genTree(cx + s * .8, cy + s * .1, s * .8) }, { gi: 2, st: genSun(cx + s * .5, cy - s * .8, s * .5) }, { gi: 0, st: [[{ x: cx - s * .1, y: cy + s * .55 }, { x: cx, y: cy + s * .8 }, { x: cx + s * .2, y: cy + s * .85 }]] }, { gi: 2, st: genBird(cx - s * .5, cy - s * .6, s * .3) }, { gi: 2, st: genBird(cx - s * .2, cy - s * .75, s * .25) }, { gi: 1, st: genFlower(cx + s * .4, cy + s * .2, s * .35) }]; }

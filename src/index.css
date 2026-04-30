@@ -306,14 +306,14 @@ textarea.inp { height: auto; min-height: 120px; padding: 0.7rem 0.9rem; resize: 
   opacity: 0; animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.5s both;
 }
 .about-section-title {
-  font-size: 0.9rem; font-weight: 500; color: #d8d8e8;
+  font-size: 0.9rem; font-weight: 300; color: #d8d8e8;
   margin-bottom: 0.9rem;
 }
 .tech-tags { display: flex; flex-wrap: wrap; gap: 0.55rem; justify-content: center; }
 .tech-tag {
   display: inline-flex; align-items: center; justify-content: center;
   height: 32px; line-height: 1;
-  font-size: 0.78rem; font-weight: 500; color: #e4e4f0;
+  font-size: 0.78rem; font-weight: 300; color: #e4e4f0;
   background: rgba(10,10,15,0.94);
   border: 1px solid rgba(255,255,255,0.18);
   padding: 0 1rem; border-radius: 999px;
