@@ -820,7 +820,7 @@ export default function Board() {
             title="Select"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 3l10 9-5 1.2 3.2 6.3-2.8 1.4-3.1-6.2L4 18z" />
+              <path d="M8 3l10 9-5 1.2 3.2 6.3-2.8 1.4-3.1-6.2L7 18z" />
             </svg>
           </button>
           <button
