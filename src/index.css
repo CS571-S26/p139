@@ -125,8 +125,8 @@ nav {
 }
 .icon { width: 44px; height: 44px; background: var(--blue); border-radius: 12px; display: grid; place-items: center; margin-bottom: 1rem; box-shadow: 0 0 30px rgba(91,138,245,0.2), 0 0 60px rgba(91,138,245,0.05); }
 .icon svg { width: 20px; height: 20px; }
-.h1 { font-size: 1.55rem; font-weight: 600; letter-spacing: -0.025em; line-height: 1.2; margin-bottom: 0.5rem; }
-.sub { color: var(--gray); font-size: 0.85rem; font-weight: 400; line-height: 1.5; margin-bottom: 1.4rem; }
+.h1 { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 0.5rem; }
+.sub { color: var(--gray); font-size: 0.88rem; font-weight: 400; line-height: 1.5; margin-bottom: 1.5rem; }
 .form { display: flex; flex-direction: column; align-items: stretch; width: 100%; gap: 0.55rem; }
 /* Form labels (Home + other pages) */
 .field { display: flex; flex-direction: column; align-items: stretch; width: 100%; gap: 0.35rem; }
@@ -135,17 +135,37 @@ nav {
 
 /* "Make public" checkbox under Create button */
 .check-row {
-  display: flex; align-items: center; gap: 0.5rem;
-  font-size: 0.78rem; color: var(--gray); cursor: pointer;
+  display: flex; align-items: center; gap: 0.6rem;
+  font-size: 0.82rem; color: var(--gray); cursor: pointer;
   align-self: flex-start;
-  margin-top: -0.1rem;
+  margin-top: 0.25rem; padding: 0.25rem 0.1rem;
+  border-radius: 6px;
+  user-select: none;
+  transition: color 0.15s;
 }
 .check-row input[type="checkbox"] {
-  width: 15px; height: 15px;
-  accent-color: var(--blue-deep);
+  appearance: none; -webkit-appearance: none;
+  width: 18px; height: 18px; flex-shrink: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
   cursor: pointer;
   margin: 0;
+  display: grid; place-items: center;
+  transition: background 0.15s, border-color 0.15s;
 }
+.check-row input[type="checkbox"]:hover { border-color: var(--blue); }
+.check-row input[type="checkbox"]:checked {
+  background: var(--blue-deep);
+  border-color: var(--blue-deep);
+}
+.check-row input[type="checkbox"]:checked::after {
+  content: '';
+  width: 10px; height: 10px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>");
+  background-size: contain; background-repeat: no-repeat; background-position: center;
+}
+.check-row input[type="checkbox"]:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .check-row:hover { color: var(--white); }
 
 /* "or join existing" divider */
@@ -165,14 +185,22 @@ nav {
 
 /* Tertiary text-link action ("Drop into a random public room") */
 .link-btn {
-  background: transparent; border: none; padding: 0.5rem 0;
-  font-family: inherit; font-size: 0.82rem; font-weight: 400;
-  color: var(--blue); cursor: pointer; text-decoration: underline;
-  text-underline-offset: 3px; align-self: center;
-  transition: color 0.2s;
+  background: transparent; border: none;
+  padding: 0.55rem 0.7rem; margin-top: 0.4rem;
+  font-family: inherit; font-size: 0.82rem; font-weight: 500;
+  color: var(--gray); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  align-self: center; border-radius: 8px;
+  transition: color 0.15s, background 0.15s;
 }
-.link-btn:hover { color: var(--white); }
-.link-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 3px; }
+.link-btn::after {
+  content: '→';
+  font-size: 1em;
+  transition: transform 0.15s;
+}
+.link-btn:hover { color: var(--white); background: rgba(255,255,255,0.04); }
+.link-btn:hover::after { transform: translateX(3px); }
+.link-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
 .inp {
   width: 100%; height: 44px;
@@ -756,8 +784,8 @@ textarea.inp { height: auto; min-height: 120px; padding: 0.7rem 0.9rem; resize: 
   .nav-m { gap: 1.2rem; }
   .home { padding: 2rem 1rem; }
   .home-card { padding: 1.7rem 1.3rem 1.4rem; border-radius: 18px; }
-  .h1 { font-size: 1.35rem; }
-  .sub { font-size: 0.82rem; margin-bottom: 1.2rem; }
+  .h1 { font-size: 1.55rem; }
+  .sub { font-size: 0.84rem; margin-bottom: 1.3rem; }
   .inp { height: 44px; font-size: 16px; }
   .inp-mono { font-size: 16px; }
   .btn { height: 44px; font-size: 0.88rem; }
