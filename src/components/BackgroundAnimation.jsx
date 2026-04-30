@@ -222,6 +222,34 @@ export default function BackgroundAnimation() {
       };
     }
 
+    function hasRoomFor(x, y, s, padding = 1.45) {
+      for (const z of zones) {
+        const minGap = z.s * padding + s * padding;
+        if (Math.hypot(x - z.x, y - z.y) < minGap) return false;
+      }
+      return true;
+    }
+
+    function findPrefillSpot(s, options = {}) {
+      const { padding = 1.45, attempts = 220 } = options;
+      const cx = W / 2;
+      const cy = H / 2;
+      const contentW = Math.min(560, W * 0.78);
+      const contentH = Math.min(680, H * 0.78);
+
+      for (let a = 0; a < attempts; a++) {
+        const x = s + 24 + Math.random() * Math.max(1, W - s * 2 - 48);
+        const y = s + 74 + Math.random() * Math.max(1, H - s * 2 - 96);
+        const insideContent =
+          Math.abs(x - cx) < contentW / 2 + s * 0.8 &&
+          Math.abs(y - cy) < contentH / 2 + s * 0.8;
+        if (insideContent) continue;
+        if (!hasRoomFor(x, y, s, padding)) continue;
+        return { x, y };
+      }
+      return null;
+    }
+
     // ── Ghost cursors ──
     const gcColors = ['#22c55e', '#f59e0b', '#ec4899'];
     const gcRefs = [gc0Ref, gc1Ref, gc2Ref];
@@ -315,13 +343,13 @@ export default function BackgroundAnimation() {
 
     function prepopulateBackground() {
       const isCompact = W < 720 || H < 620;
-      const targetCount = isCompact ? 5 : 14;
-      const maxAttempts = targetCount * 7;
+      const targetCount = isCompact ? 9 : 22;
+      const maxAttempts = targetCount * 12;
 
       for (let i = 0, placed = 0; placed < targetCount && i < maxAttempts; i++) {
         const gen = allShapes[Math.floor(Math.random() * allShapes.length)];
-        const s = isCompact ? 20 + Math.random() * 16 : 34 + Math.random() * 34;
-        const pos = findSpot(s, { allowFallback: false, padding: isCompact ? 1.75 : 2.15 });
+        const s = isCompact ? 16 + Math.random() * 14 : 28 + Math.random() * 28;
+        const pos = findPrefillSpot(s, { padding: isCompact ? 1.3 : 1.45 });
         if (!pos) continue;
         const z = { x: pos.x, y: pos.y, s, stroke: null };
         zones.push(z);
