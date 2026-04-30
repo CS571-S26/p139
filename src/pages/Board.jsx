@@ -69,10 +69,11 @@ export default function Board() {
     }
   }, [])
 
-  const roomParam = params.get('room')
+  const roomParam = params.get('room')?.toUpperCase() || ''
+  const hasJoinedRoom = !!roomParam && !!roomCode && !!currentUser && roomCode === roomParam
   useEffect(() => {
-    if (!roomParam || (!roomCode && !roomParam)) navigate('/')
-  }, [roomParam, roomCode, navigate])
+    if (!hasJoinedRoom) navigate('/', { replace: true })
+  }, [hasJoinedRoom, navigate])
 
   useEffect(() => {
     const wrap = wrapRef.current
@@ -644,6 +645,8 @@ export default function Board() {
 
   const isShapeTool = ['rect', 'circle', 'line', 'triangle', 'arrow', 'star'].includes(activeTool)
   const isInitiator = clearVote && currentUser && clearVote.initiatorSocketId === currentUser.socketId
+
+  if (!hasJoinedRoom) return null
 
   return (
     <div className="board-page">
