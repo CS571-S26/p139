@@ -75,7 +75,7 @@ export default function BackgroundAnimation() {
       return p;
     }
 
-    // ── 19 Shape generators ──
+    // ── Shape generators ──
     function genSmiley(cx, cy, s) {
       return [circ(cx, cy, s, 20), circ(cx - s * .32, cy - s * .2, s * .1, 8), circ(cx + s * .32, cy - s * .2, s * .1, 8), arc(cx, cy + s * .08, s * .48, .15, Math.PI - .15, 10)];
     }
@@ -89,31 +89,6 @@ export default function BackgroundAnimation() {
       for (let i = 0; i <= 10; i++) { const a = i / 10 * Math.PI * 2 - Math.PI / 2, r = i % 2 === 0 ? s : s * .42; p.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r }); }
       return [p];
     }
-    function genStickman(cx, cy, s) {
-      return [circ(cx, cy - s * .6, s * .22, 18), [{ x: cx, y: cy - s * .38 }, { x: cx, y: cy + s * .2 }], [{ x: cx - s * .4, y: cy - s * .05 }, { x: cx, y: cy - s * .2 }, { x: cx + s * .4, y: cy - s * .05 }], [{ x: cx, y: cy + s * .2 }, { x: cx - s * .3, y: cy + s * .65 }], [{ x: cx, y: cy + s * .2 }, { x: cx + s * .3, y: cy + s * .65 }]];
-    }
-    function genHouse(cx, cy, s) {
-      return [[{ x: cx - s * .5, y: cy }, { x: cx - s * .5, y: cy + s * .55 }, { x: cx + s * .5, y: cy + s * .55 }, { x: cx + s * .5, y: cy }], [{ x: cx - s * .6, y: cy + s * .03 }, { x: cx, y: cy - s * .45 }, { x: cx + s * .6, y: cy + s * .03 }], [{ x: cx - s * .12, y: cy + s * .55 }, { x: cx - s * .12, y: cy + s * .22 }, { x: cx + s * .12, y: cy + s * .22 }, { x: cx + s * .12, y: cy + s * .55 }], circ(cx + s * .28, cy + s * .18, s * .09, 10)];
-    }
-    function genTree(cx, cy, s) {
-      return [
-        [
-          { x: cx, y: cy - s * .72 },
-          { x: cx - s * .28, y: cy - s * .3 },
-          { x: cx - s * .12, y: cy - s * .3 },
-          { x: cx - s * .44, y: cy + s * .12 },
-          { x: cx - s * .2, y: cy + s * .12 },
-          { x: cx - s * .54, y: cy + s * .5 },
-          { x: cx + s * .54, y: cy + s * .5 },
-          { x: cx + s * .2, y: cy + s * .12 },
-          { x: cx + s * .44, y: cy + s * .12 },
-          { x: cx + s * .12, y: cy - s * .3 },
-          { x: cx + s * .28, y: cy - s * .3 },
-          { x: cx, y: cy - s * .72 }
-        ],
-        [{ x: cx, y: cy + s * .5 }, { x: cx, y: cy + s * .78 }]
-      ];
-    }
     function genSun(cx, cy, s) {
       const st = [circ(cx, cy, s * .35, 20)];
       for (let r = 0; r < 8; r++) { const a = r / 8 * Math.PI * 2; st.push([{ x: cx + Math.cos(a) * s * .45, y: cy + Math.sin(a) * s * .45 }, { x: cx + Math.cos(a) * s * .8, y: cy + Math.sin(a) * s * .8 }]); }
@@ -126,34 +101,11 @@ export default function BackgroundAnimation() {
       st.push([{ x: cx, y: cy + s * .3 }, { x: cx - s * .04, y: cy + s * .55 }, { x: cx + s * .02, y: cy + s * .8 }]);
       return st;
     }
-    function genCat(cx, cy, s) {
-      return [
-        circ(cx, cy, s * .42, 28),
-        [{ x: cx - s * .24, y: cy - s * .34 }, { x: cx - s * .38, y: cy - s * .66 }, { x: cx - s * .05, y: cy - s * .42 }],
-        [{ x: cx + s * .24, y: cy - s * .34 }, { x: cx + s * .38, y: cy - s * .66 }, { x: cx + s * .05, y: cy - s * .42 }],
-        circ(cx - s * .15, cy - s * .08, s * .035, 6),
-        circ(cx + s * .15, cy - s * .08, s * .035, 6),
-        [{ x: cx, y: cy + s * .02 }, { x: cx - s * .05, y: cy + s * .08 }, { x: cx + s * .05, y: cy + s * .08 }, { x: cx, y: cy + s * .02 }],
-        [{ x: cx - s * .08, y: cy + s * .12 }, { x: cx - s * .38, y: cy + s * .04 }],
-        [{ x: cx - s * .08, y: cy + s * .16 }, { x: cx - s * .38, y: cy + s * .18 }],
-        [{ x: cx + s * .08, y: cy + s * .12 }, { x: cx + s * .38, y: cy + s * .04 }],
-        [{ x: cx + s * .08, y: cy + s * .16 }, { x: cx + s * .38, y: cy + s * .18 }]
-      ];
-    }
-    function genBoat(cx, cy, s) {
-      return [(() => { const p = []; for (let i = 0; i <= 12; i++) { const t = i / 12; p.push({ x: cx - s * .5 + t * s, y: cy + s * .2 + Math.sin(t * Math.PI) * .15 * s }); } return p; })(), [{ x: cx, y: cy + s * .15 }, { x: cx, y: cy - s * .4 }], [{ x: cx, y: cy - s * .4 }, { x: cx + s * .35, y: cy - s * .15 }, { x: cx, y: cy - s * .1 }]];
-    }
     function genBird(cx, cy, s) {
       return [arc(cx - s * .15, cy, s * .2, Math.PI + .3, 2 * Math.PI - .3, 8), arc(cx + s * .15, cy, s * .2, Math.PI + .3, 2 * Math.PI - .3, 8)];
     }
-    function genMusic(cx, cy, s) {
-      return [[{ x: cx - s * .2, y: cy + s * .35 }, { x: cx - s * .2, y: cy - s * .35 }], circ(cx - s * .2, cy + s * .35, s * .1, 8), [{ x: cx + s * .2, y: cy + s * .25 }, { x: cx + s * .2, y: cy - s * .45 }], circ(cx + s * .2, cy + s * .25, s * .1, 8), [{ x: cx - s * .2, y: cy - s * .35 }, { x: cx + s * .2, y: cy - s * .45 }]];
-    }
     function genBalloon(cx, cy, s) {
       return [circ(cx, cy - s * .2, s * .35, 24), [{ x: cx, y: cy + s * .15 }, { x: cx - s * .05, y: cy + s * .35 }, { x: cx + s * .05, y: cy + s * .55 }, { x: cx - s * .05, y: cy + s * .75 }]];
-    }
-    function genFish(cx, cy, s) {
-      return [(() => { const p = []; for (let i = 0; i <= 16; i++) { const a = i / 16 * Math.PI * 2; p.push({ x: cx + Math.cos(a) * s * .45, y: cy + Math.sin(a) * s * .25 }); } return p; })(), [{ x: cx + s * .45, y: cy }, { x: cx + s * .7, y: cy - s * .2 }, { x: cx + s * .7, y: cy + s * .2 }, { x: cx + s * .45, y: cy }], circ(cx - s * .2, cy - s * .05, s * .05, 6)];
     }
     function genButterfly(cx, cy, s) {
       return [circ(cx - s * .25, cy - s * .1, s * .3, 16), circ(cx + s * .25, cy - s * .1, s * .3, 16), circ(cx - s * .2, cy + s * .2, s * .22, 12), circ(cx + s * .2, cy + s * .2, s * .22, 12), [{ x: cx, y: cy - s * .5 }, { x: cx, y: cy + s * .5 }]];
@@ -161,26 +113,19 @@ export default function BackgroundAnimation() {
     function genRocket(cx, cy, s) {
       return [(() => { const p = [{ x: cx, y: cy - s * .7 }]; p.push({ x: cx + s * .2, y: cy - s * .3 }); p.push({ x: cx + s * .2, y: cy + s * .3 }); p.push({ x: cx, y: cy + s * .5 }); p.push({ x: cx - s * .2, y: cy + s * .3 }); p.push({ x: cx - s * .2, y: cy - s * .3 }); p.push({ x: cx, y: cy - s * .7 }); return p; })(), circ(cx, cy - s * .15, s * .08, 8), [{ x: cx - s * .2, y: cy + s * .2 }, { x: cx - s * .35, y: cy + s * .45 }], [{ x: cx + s * .2, y: cy + s * .2 }, { x: cx + s * .35, y: cy + s * .45 }]];
     }
-    function genCrown(cx, cy, s) {
-      return [[{ x: cx - s * .4, y: cy + s * .2 }, { x: cx - s * .4, y: cy - s * .1 }, { x: cx - s * .2, y: cy + s * .05 }, { x: cx, y: cy - s * .3 }, { x: cx + s * .2, y: cy + s * .05 }, { x: cx + s * .4, y: cy - s * .1 }, { x: cx + s * .4, y: cy + s * .2 }, { x: cx - s * .4, y: cy + s * .2 }]];
-    }
     function genSpiral(cx, cy, s) {
       const p = [];
       for (let i = 0; i <= 50; i++) { const a = i * .25, r = i / 50 * s; p.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r }); }
       return [p];
     }
 
-    const allShapes = [genSmiley, genHeart, genStar, genStickman, genHouse, genTree, genSun, genFlower, genCat, genBoat, genBird, genMusic, genBalloon, genFish, genButterfly, genRocket, genCrown, genSpiral];
+    const allShapes = [genSmiley, genHeart, genStar, genSun, genFlower, genBird, genBalloon, genSpiral];
 
-    // ── 6 Scene generators ──
-    function sceneHouseyard(cx, cy, s) { return [{ gi: 0, st: genHouse(cx - s * .3, cy, s) }, { gi: 1, st: genTree(cx + s * .8, cy + s * .1, s * .8) }, { gi: 2, st: genSun(cx + s * .5, cy - s * .8, s * .5) }, { gi: 0, st: [[{ x: cx - s * .1, y: cy + s * .55 }, { x: cx, y: cy + s * .8 }, { x: cx + s * .2, y: cy + s * .85 }]] }, { gi: 2, st: genBird(cx - s * .5, cy - s * .6, s * .3) }, { gi: 2, st: genBird(cx - s * .2, cy - s * .75, s * .25) }, { gi: 1, st: genFlower(cx + s * .4, cy + s * .2, s * .35) }]; }
-    function sceneBeach(cx, cy, s) { return [{ gi: 0, st: genSun(cx + s * .6, cy - s * .6, s * .4) }, { gi: 2, st: genBoat(cx - s * .2, cy + s * .1, s * .6) }, { gi: 1, st: genBird(cx - s * .5, cy - s * .5, s * .25) }, { gi: 1, st: genBird(cx - s * .2, cy - s * .6, s * .2) }, { gi: 0, st: genFish(cx + s * .3, cy + s * .4, s * .35) }, { gi: 2, st: genStar(cx - s * .6, cy + s * .3, s * .2) }]; }
+    // Rare, simple clusters add variation without turning the background into a story.
     function sceneSpace(cx, cy, s) { return [{ gi: 0, st: genRocket(cx - s * .3, cy, s * .7) }, { gi: 1, st: genStar(cx + s * .5, cy - s * .3, s * .3) }, { gi: 2, st: genStar(cx - s * .6, cy - s * .5, s * .2) }, { gi: 2, st: genStar(cx + s * .2, cy - s * .7, s * .15) }, { gi: 2, st: genStar(cx + s * .8, cy - s * .5, s * .18) }, { gi: 1, st: genStar(cx + s * .7, cy + s * .2, s * .12) }, { gi: 0, st: genStar(cx - s * .1, cy + s * .5, s * .12) }]; }
     function sceneGarden(cx, cy, s) { return [{ gi: 0, st: genFlower(cx - s * .5, cy + s * .1, s * .5) }, { gi: 1, st: genFlower(cx + s * .1, cy + s * .15, s * .45) }, { gi: 2, st: genFlower(cx + s * .65, cy + s * .05, s * .5) }, { gi: 0, st: genSun(cx + s * .3, cy - s * .7, s * .35) }, { gi: 2, st: genButterfly(cx, cy - s * .3, s * .3) }, { gi: 1, st: genBird(cx - s * .3, cy - s * .5, s * .2) }]; }
-    function sceneParty(cx, cy, s) { return [{ gi: 0, st: genBalloon(cx - s * .5, cy, s * .4) }, { gi: 1, st: genBalloon(cx, cy - s * .1, s * .45) }, { gi: 2, st: genBalloon(cx + s * .5, cy + s * .05, s * .4) }, { gi: 0, st: genCrown(cx, cy + s * .5, s * .35) }, { gi: 1, st: genMusic(cx + s * .6, cy + s * .3, s * .3) }, { gi: 2, st: genStar(cx - s * .3, cy - s * .5, s * .2) }]; }
-    function scenePark(cx, cy, s) { return [{ gi: 0, st: genTree(cx - s * .4, cy + s * .1, s * .7) }, { gi: 1, st: genTree(cx + s * .4, cy + s * .05, s * .65) }, { gi: 2, st: genSun(cx, cy - s * .7, s * .35) }, { gi: 0, st: genBird(cx - s * .2, cy - s * .45, s * .2) }, { gi: 1, st: genFlower(cx - s * .1, cy + s * .5, s * .35) }, { gi: 2, st: genCat(cx + s * .6, cy + s * .3, s * .35) }]; }
 
-    const scenes = [sceneHouseyard, sceneBeach, sceneSpace, sceneGarden, sceneParty, scenePark];
+    const scenes = [sceneSpace, sceneGarden];
 
     // ── Zone management ──
     let zones = [];
@@ -254,7 +199,7 @@ export default function BackgroundAnimation() {
 
     function assignSolo(g) {
       const gen = allShapes[Math.floor(Math.random() * allShapes.length)];
-      const s = 40 + Math.random() * 30;
+      const s = 30 + Math.random() * 18;
       const pos = findSpot(s);
       const z = { x: pos.x, y: pos.y, s, stroke: null };
       zones.push(z);
@@ -308,7 +253,7 @@ export default function BackgroundAnimation() {
             if (t._zone) g._zone = t._zone;
           } else if (g.drawn.length > 4 && Math.random() < 0.2) {
             startErase(g);
-          } else if (Math.random() < 0.35 && queue.length === 0) {
+          } else if (Math.random() < 0.04 && queue.length === 0) {
             scheduleScene(); g.pause = 30;
           } else {
             assignSolo(g);
@@ -385,7 +330,7 @@ export default function BackgroundAnimation() {
           g.pi++;
         }
         if (g.pi >= stroke.length) {
-          const saved = { points: [...g.sampled], color: g.color, alpha: 1, width: 2 };
+          const saved = { points: [...g.sampled], color: g.color, alpha: 1, width: 1.5 };
           persist.push(saved); g.drawn.push(saved);
           if (g._zone && !g._zone.stroke) { g._zone.stroke = saved; }
           g.sampled = null; g.pi = 0;
@@ -407,17 +352,17 @@ export default function BackgroundAnimation() {
         const z = zones[i];
         if (z.stroke && z.stroke.alpha <= 0) zones.splice(i, 1);
       }
-      if (zones.length > 50) zones.splice(0, 1);
+      if (zones.length > 28) zones.splice(0, 1);
 
-      // Cap max strokes — higher limit so drawings accumulate
-      while (persist.length > 200) { persist.shift(); }
+      // Cap max strokes so the background stays sparse and textural.
+      while (persist.length > 80) { persist.shift(); }
 
       // Draw persisted strokes — slow fade only when getting full
       for (let i = persist.length - 1; i >= 0; i--) {
         const s = persist[i];
-        if (persist.length > 150) s.alpha -= 0.0001;
+        if (persist.length > 55) s.alpha -= 0.0002;
         if (s.alpha <= 0) { persist.splice(i, 1); continue; }
-        ctx.globalAlpha = Math.min(s.alpha, 1) * 0.2;
+        ctx.globalAlpha = Math.min(s.alpha, 1) * 0.1;
         ctx.strokeStyle = s.color; ctx.lineWidth = s.width;
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         ctx.beginPath();
@@ -432,7 +377,7 @@ export default function BackgroundAnimation() {
       // Draw active in-progress strokes
       for (const g of ghosts) {
         if (g.sampled && g.sampled.length > 1) {
-          ctx.globalAlpha = 0.2; ctx.strokeStyle = g.color; ctx.lineWidth = 2;
+          ctx.globalAlpha = 0.13; ctx.strokeStyle = g.color; ctx.lineWidth = 1.5;
           ctx.lineCap = 'round'; ctx.lineJoin = 'round';
           ctx.beginPath();
           for (let j = 0; j < g.sampled.length; j++) {
