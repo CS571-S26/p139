@@ -25,6 +25,7 @@ export default function Board() {
   const textOverlayRef = useRef(null)
   const textFocusTimerRef = useRef(null)
   const textIgnoreBlurUntilRef = useRef(0)
+  const imageAspectCacheRef = useRef(new Map())
   const transformRef = useRef(null)
   const transformCleanupRef = useRef(null)
 
@@ -36,6 +37,7 @@ export default function Board() {
   const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 })
   const [textOverlay, setTextOverlay] = useState(null) // { x, y, value }
   const [selectedDrawableId, setSelectedDrawableId] = useState(null)
+  const [, setImageAspectVersion] = useState(0)
   const [chatOpen, setChatOpen] = useState(false)
   const [draftMsg, setDraftMsg] = useState('')
   const [dragOver, setDragOver] = useState(false)
@@ -84,9 +86,34 @@ export default function Board() {
   }, [activeTool, sendTool])
 
   const selectedDrawable = drawables.find(d => d.id === selectedDrawableId) || null
+  const selectedEditableText = selectedDrawable?.tool === 'text' && selectedDrawable.socketId === currentUser?.socketId
+  const activeSize = selectedEditableText ? (selectedDrawable.size || strokeSize) : strokeSize
 
   function clamp(n, min, max) {
     return Math.min(max, Math.max(min, n))
+  }
+
+  function imageAspect(drawable) {
+    if (typeof drawable.aspect === 'number' && drawable.aspect > 0) return drawable.aspect
+    if (imageAspectCacheRef.current.has(drawable.id)) {
+      return imageAspectCacheRef.current.get(drawable.id)
+    }
+    if (!drawable.dataUrl) return null
+    const img = new Image()
+    img.onload = () => {
+      if (!img.naturalWidth || !img.naturalHeight) return
+      imageAspectCacheRef.current.set(drawable.id, img.naturalHeight / img.naturalWidth)
+      setImageAspectVersion(v => v + 1)
+    }
+    img.src = drawable.dataUrl
+    imageAspectCacheRef.current.set(drawable.id, null)
+    return null
+  }
+
+  function imageHeightForWidth(drawable, widthNorm) {
+    const aspect = imageAspect(drawable)
+    if (!aspect || !canvasSize.w || !canvasSize.h) return drawable.height || 0.3
+    return (widthNorm * canvasSize.w * aspect) / canvasSize.h
   }
 
   function getTextFontSize(drawable) {
@@ -108,11 +135,12 @@ export default function Board() {
     const x = drawable.points[0].nx * canvasSize.w
     const y = drawable.points[0].ny * canvasSize.h
     if (drawable.tool === 'image') {
+      const width = drawable.width || 0.3
       return {
         x,
         y,
-        w: (drawable.width || 0.3) * canvasSize.w,
-        h: (drawable.height || 0.3) * canvasSize.h
+        w: width * canvasSize.w,
+        h: imageHeightForWidth(drawable, width) * canvasSize.h
       }
     }
     if (drawable.tool === 'text') {
@@ -156,7 +184,10 @@ export default function Board() {
       original: {
         point: { ...drawable.points[0] },
         width: drawable.width || (drawable.tool === 'image' ? 0.3 : estimateTextBox(drawable).w / canvasSize.w),
-        height: drawable.height || (drawable.tool === 'image' ? 0.3 : estimateTextBox(drawable).h / canvasSize.h),
+        height: drawable.tool === 'image'
+          ? imageHeightForWidth(drawable, drawable.width || 0.3)
+          : drawable.height || estimateTextBox(drawable).h / canvasSize.h,
+        aspect: drawable.tool === 'image' ? imageAspect(drawable) : null,
         tool: drawable.tool
       }
     }
@@ -200,8 +231,12 @@ export default function Board() {
       const maxW = Math.max(minW, 1 - t.original.point.nx)
       updates.width = clamp(t.original.width + dx, minW, maxW)
       if (t.original.tool === 'image') {
-        const ratio = t.original.height / t.original.width
-        updates.height = clamp(updates.width * ratio, 0.05, Math.max(0.05, 1 - t.original.point.ny))
+        const aspect = t.original.aspect || ((t.original.height * canvasSize.h) / (t.original.width * canvasSize.w))
+        updates.height = clamp(
+          (updates.width * canvasSize.w * aspect) / canvasSize.h,
+          0.05,
+          Math.max(0.05, 1 - t.original.point.ny)
+        )
       } else {
         const minH = Math.max(24 / canvasSize.h, 0.035)
         const maxH = Math.max(minH, 1 - t.original.point.ny)
@@ -210,6 +245,13 @@ export default function Board() {
     }
     sendDrawableUpdate(t.id, updates)
     if (final) transformRef.current = null
+  }
+
+  function handleStrokeSizeChange(nextSize) {
+    setStrokeSize(nextSize)
+    if (selectedEditableText) {
+      sendDrawableUpdate(selectedDrawable.id, { size: nextSize })
+    }
   }
 
   function handlePointerMove(e) {
@@ -382,6 +424,7 @@ export default function Board() {
       points: [{ nx: Math.max(0, Math.min(1 - drawableW, point.nx)), ny: Math.max(0, Math.min(1 - drawableH, point.ny)) }],
       width: drawableW,
       height: drawableH,
+      aspect,
       dataUrl: outUrl
     })
     if (localId) {
@@ -596,20 +639,20 @@ export default function Board() {
           <div className="tool-divider" />
 
           {/* Stroke size */}
-          <span className="size-label">{strokeSize}px</span>
+          <span className="size-label">{activeSize}px</span>
           <input
             type="range"
             className="stroke-slider"
             min={1}
             max={12}
-            value={strokeSize}
-            onChange={e => setStrokeSize(+e.target.value)}
-            title={'Size: ' + strokeSize}
+            value={activeSize}
+            onChange={e => handleStrokeSizeChange(+e.target.value)}
+            title={(selectedEditableText ? 'Text size: ' : 'Size: ') + activeSize}
           />
           <div className="stroke-preview-slot">
             <div
               className="stroke-preview"
-              style={{ width: strokeSize, height: strokeSize }}
+              style={{ width: activeSize, height: activeSize }}
             />
           </div>
 
@@ -734,7 +777,7 @@ export default function Board() {
               onChange={(e) => setTextOverlay(o => o ? { ...o, value: e.target.value } : o)}
               onKeyDown={(e) => {
                 e.stopPropagation()
-                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); commitTextOverlay() }
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitTextOverlay() }
                 else if (e.key === 'Escape') { setTextOverlay(null) }
               }}
               onBlur={handleTextOverlayBlur}

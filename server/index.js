@@ -455,6 +455,11 @@ io.on('connection', (socket) => {
       if (!validBoxSize(updates.height)) return;
       next.height = updates.height;
     }
+    if (updates.size !== undefined) {
+      if (current.tool !== 'text') return;
+      if (typeof updates.size !== 'number' || updates.size < 1 || updates.size > 64) return;
+      next.size = updates.size;
+    }
     if (current.tool === 'text' && updates.text !== undefined) {
       if (typeof updates.text !== 'string') return;
       if (updates.text.length === 0 || updates.text.length > MAX_TEXT_LEN) return;
