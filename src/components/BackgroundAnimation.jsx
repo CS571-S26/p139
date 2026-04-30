@@ -235,8 +235,8 @@ export default function BackgroundAnimation() {
       const { padding = 1.45, attempts = 220 } = options;
       const cx = W / 2;
       const cy = H / 2;
-      const contentW = Math.min(560, W * 0.78);
-      const contentH = Math.min(680, H * 0.78);
+      const contentW = Math.min(500, W * 0.5);
+      const contentH = Math.min(560, H * 0.64);
 
       for (let a = 0; a < attempts; a++) {
         const x = s + 24 + Math.random() * Math.max(1, W - s * 2 - 48);
@@ -347,18 +347,19 @@ export default function BackgroundAnimation() {
 
     function prepopulateBackground() {
       const isCompact = W < 720 || H < 620;
-      const targetCount = isCompact ? 7 : 18;
-      const maxAttempts = targetCount * 12;
+      const targetCount = isCompact ? 5 : 13;
+      const maxAttempts = targetCount * 16;
 
       for (let i = 0, placed = 0; placed < targetCount && i < maxAttempts; i++) {
         const gen = allShapes[Math.floor(Math.random() * allShapes.length)];
-        const s = isCompact ? 16 + Math.random() * 14 : 28 + Math.random() * 28;
-        const pos = findPrefillSpot(s, { padding: isCompact ? 1.3 : 1.45 });
+        const s = isCompact ? 15 + Math.random() * 12 : 22 + Math.random() * 24;
+        const pos = findPrefillSpot(s, { padding: isCompact ? 1.45 : 1.7 });
         if (!pos) continue;
         const z = { x: pos.x, y: pos.y, s, stroke: null };
         zones.push(z);
         savePreloaded(gen(pos.x, pos.y, s), gcColors[placed % gcColors.length], z, {
-          alpha: 0.55 + Math.random() * 0.45,
+          alpha: 0.35 + Math.random() * 0.35,
+          width: 1.6,
           decay: 0.000025 + Math.random() * 0.000025,
           delay: 600 + Math.floor(Math.random() * 1200)
         });
