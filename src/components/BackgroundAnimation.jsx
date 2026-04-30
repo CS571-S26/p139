@@ -213,13 +213,14 @@ export default function BackgroundAnimation() {
         if (ok) return { x, y };
       }
       if (!allowFallback) return null;
-      // Fallback: place at a random angle on the ring
-      const fa = Math.random() * Math.PI * 2;
-      const fr = Math.sqrt(innerW * innerW + innerH * innerH) * 1.1;
-      return {
-        x: Math.max(s + 20, Math.min(W - s - 20, cx + Math.cos(fa) * fr * (innerW / innerH))),
-        y: Math.max(s + 60, Math.min(H - s - 20, cy + Math.sin(fa) * fr))
-      };
+      for (let a = 0; a < 40; a++) {
+        const fa = Math.random() * Math.PI * 2;
+        const fr = Math.sqrt(innerW * innerW + innerH * innerH) * (1 + Math.random() * 0.35);
+        const x = Math.max(s + 20, Math.min(W - s - 20, cx + Math.cos(fa) * fr * (innerW / innerH)));
+        const y = Math.max(s + 60, Math.min(H - s - 20, cy + Math.sin(fa) * fr));
+        if (hasRoomFor(x, y, s, Math.max(1.15, padding * 0.8))) return { x, y };
+      }
+      return null;
     }
 
     function hasRoomFor(x, y, s, padding = 1.45) {
@@ -289,6 +290,7 @@ export default function BackgroundAnimation() {
       const gen = allShapes[Math.floor(Math.random() * allShapes.length)];
       const s = 40 + Math.random() * 30;
       const pos = findSpot(s);
+      if (!pos) { g.pause = 90; return; }
       const z = { x: pos.x, y: pos.y, s, stroke: null };
       zones.push(z);
       startDraw(g, gen(pos.x, pos.y, s));
@@ -322,9 +324,11 @@ export default function BackgroundAnimation() {
       const fn = scenes[Math.floor(Math.random() * scenes.length)];
       const s = 35 + Math.random() * 25;
       const pos = findSpot(s * 2);
+      if (!pos) return false;
       const z = { x: pos.x, y: pos.y, s: s * 2, stroke: null };
       zones.push(z);
       fn(pos.x, pos.y, s).forEach(t => { t._zone = z; queue.push(t); });
+      return true;
     }
 
     function savePreloaded(raw, color, zone, options = {}) {
@@ -343,7 +347,7 @@ export default function BackgroundAnimation() {
 
     function prepopulateBackground() {
       const isCompact = W < 720 || H < 620;
-      const targetCount = isCompact ? 9 : 22;
+      const targetCount = isCompact ? 7 : 18;
       const maxAttempts = targetCount * 12;
 
       for (let i = 0, placed = 0; placed < targetCount && i < maxAttempts; i++) {
@@ -377,7 +381,8 @@ export default function BackgroundAnimation() {
           } else if (g.drawn.length > 4 && Math.random() < 0.2) {
             startErase(g);
           } else if (Math.random() < 0.35 && queue.length === 0) {
-            scheduleScene(); g.pause = 30;
+            if (scheduleScene()) g.pause = 30;
+            else assignSolo(g);
           } else {
             assignSolo(g);
           }
