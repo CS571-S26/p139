@@ -54,14 +54,17 @@ nav {
   padding-left: max(1.5rem, env(safe-area-inset-left));
   padding-right: max(1.5rem, env(safe-area-inset-right));
   background: rgba(6,6,9,0.85); backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid var(--dim);
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
 }
 .nav-l { display: flex; align-items: center; gap: 0.5rem; text-decoration: none; }
 .logo { width: 30px; height: 30px; background: var(--blue); border-radius: 8px; display: grid; place-items: center; box-shadow: 0 0 16px rgba(91,138,245,0.25); }
 .logo svg { width: 15px; height: 15px; }
 .brand { font-weight: 600; font-size: 0.92rem; letter-spacing: -0.01em; color: var(--white); }
-.nav-m { display: flex; gap: 2rem; position: absolute; left: 50%; transform: translateX(-50%); }
+.nav-m {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 5.75rem; justify-items: center;
+  position: absolute; left: 50%; transform: translateX(-50%);
+}
 .nl { font-size: 0.8rem; font-weight: 400; color: var(--dim); text-decoration: none; transition: color 0.3s; }
 .nl:hover { color: var(--gray); }
 .nl.on { color: var(--white); }
