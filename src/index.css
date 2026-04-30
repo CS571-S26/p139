@@ -600,10 +600,10 @@ textarea.inp { height: auto; min-height: 120px; padding: 0.7rem 0.9rem; resize: 
 }
 .drawable-delete-handle {
   position: absolute;
-  right: -8px;
-  top: -8px;
-  width: 18px;
-  height: 18px;
+  right: -12px;
+  top: -12px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: 2px solid #fff;
   border-radius: 50%;
@@ -617,8 +617,8 @@ textarea.inp { height: auto; min-height: 120px; padding: 0.7rem 0.9rem; resize: 
   box-shadow: 0 2px 8px rgba(0,0,0,0.22);
 }
 .drawable-delete-handle svg {
-  width: 11px;
-  height: 11px;
+  width: 14px;
+  height: 14px;
 }
 
 @media (pointer: coarse) {
