@@ -67,6 +67,7 @@ nav {
   position: absolute; left: 50%; transform: translateX(-50%);
 }
 .nl { font-size: 0.8rem; font-weight: 400; color: var(--dim); text-decoration: none; transition: color 0.3s; }
+.nav-m .nl:nth-child(3) { transform: translateX(0.45rem); }
 .nl:hover { color: var(--gray); }
 .nl.on { color: var(--white); }
 .nav-r { display: flex; align-items: center; gap: 0.6rem; min-width: 100px; justify-content: flex-end; }
