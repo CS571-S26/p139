@@ -110,6 +110,9 @@ export default function SocketProvider({ children }) {
       s.on('draw-add', ({ drawable }) => {
         setDrawables(prev => prev.some(d => d.id === drawable.id) ? prev : [...prev, drawable])
       })
+      s.on('draw-update', ({ drawable }) => {
+        setDrawables(prev => prev.map(d => d.id === drawable.id ? drawable : d))
+      })
       s.on('draw-clear', () => {
         setDrawables([])
         setLiveDrawables({})
@@ -256,6 +259,16 @@ export default function SocketProvider({ children }) {
     return localId
   }
 
+  function sendDrawableUpdate(id, updates) {
+    const s = socketRef.current
+    if (!s || !s.connected || !currentUser || !id || !updates) return
+    setDrawables(prev => prev.map(d => {
+      if (d.id !== id || d.socketId !== currentUser.socketId) return d
+      return { ...d, ...updates }
+    }))
+    s.emit('drawable-update', { id, updates })
+  }
+
   function sendChat(text) {
     const s = socketRef.current
     if (!s || !s.connected) return
@@ -330,7 +343,7 @@ export default function SocketProvider({ children }) {
   }, [])
 
   return (
-    <Ctx.Provider value={{ roomCode, users, currentUser, error, connected, remoteCursors, drawables, liveDrawables, canUndo: undoStack.length > 0, canRedo: redoStack.length > 0, clearVote, messages, unreadCount, createRoom, joinRoom, joinPublicRoom, leaveRoom, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, sendDrawableAdd, sendChat, setChatOpen, startClearVote, respondClearVote, sendFeedback, undo, redo }}>
+    <Ctx.Provider value={{ roomCode, users, currentUser, error, connected, remoteCursors, drawables, liveDrawables, canUndo: undoStack.length > 0, canRedo: redoStack.length > 0, clearVote, messages, unreadCount, createRoom, joinRoom, joinPublicRoom, leaveRoom, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, sendDrawableAdd, sendDrawableUpdate, sendChat, setChatOpen, startClearVote, respondClearVote, sendFeedback, undo, redo }}>
       {children}
     </Ctx.Provider>
   )

@@ -125,6 +125,10 @@ function validPoint(p) {
     && p.nx >= -0.01 && p.nx <= 1.01 && p.ny >= -0.01 && p.ny <= 1.01;
 }
 
+function validBoxSize(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 && value <= 1.5;
+}
+
 function pickColor(room) {
   const taken = new Set();
   if (room) for (const u of room.users.values()) taken.add(u.color);
@@ -402,12 +406,14 @@ io.on('connection', (socket) => {
     if (drawable.tool === 'text') {
       if (typeof drawable.text !== 'string') return;
       if (drawable.text.length === 0 || drawable.text.length > MAX_TEXT_LEN) return;
+      if (drawable.width !== undefined && !validBoxSize(drawable.width)) return;
+      if (drawable.height !== undefined && !validBoxSize(drawable.height)) return;
     } else if (drawable.tool === 'image') {
       if (typeof drawable.dataUrl !== 'string') return;
       if (!drawable.dataUrl.startsWith('data:image/')) return;
       if (drawable.dataUrl.length > MAX_IMAGE_DATAURL_LEN) return;
-      if (typeof drawable.width !== 'number' || drawable.width <= 0 || drawable.width > 1.5) return;
-      if (typeof drawable.height !== 'number' || drawable.height <= 0 || drawable.height > 1.5) return;
+      if (!validBoxSize(drawable.width)) return;
+      if (!validBoxSize(drawable.height)) return;
     } else {
       // Only text and image are supposed to use the commit flow
       return;
@@ -422,6 +428,46 @@ io.on('connection', (socket) => {
     }
     room.dirty = true;
     io.to(code).emit('draw-add', { drawable: safeDrawable });
+  });
+
+  socket.on('drawable-update', ({ id, updates } = {}) => {
+    const code = socketRooms.get(socket.id);
+    if (!code) return;
+    const room = rooms.get(code);
+    if (!room) return;
+    if (typeof id !== 'string' || !updates || typeof updates !== 'object') return;
+    const idx = room.drawables.findIndex(d => d.id === id && d.socketId === socket.id);
+    if (idx === -1) return;
+
+    const current = room.drawables[idx];
+    const next = { ...current };
+
+    if (updates.points !== undefined) {
+      if (!Array.isArray(updates.points) || updates.points.length === 0) return;
+      for (const p of updates.points) if (!validPoint(p)) return;
+      next.points = updates.points;
+    }
+    if (updates.width !== undefined) {
+      if (!validBoxSize(updates.width)) return;
+      next.width = updates.width;
+    }
+    if (updates.height !== undefined) {
+      if (!validBoxSize(updates.height)) return;
+      next.height = updates.height;
+    }
+    if (current.tool === 'text' && updates.text !== undefined) {
+      if (typeof updates.text !== 'string') return;
+      if (updates.text.length === 0 || updates.text.length > MAX_TEXT_LEN) return;
+      next.text = updates.text;
+    }
+
+    if (current.tool === 'image') {
+      if (!validBoxSize(next.width) || !validBoxSize(next.height)) return;
+    }
+
+    room.drawables[idx] = next;
+    room.dirty = true;
+    io.to(code).emit('draw-update', { drawable: next });
   });
 
   socket.on('chat-send', ({ text } = {}) => {

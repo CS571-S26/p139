@@ -11,7 +11,7 @@ const PRESETS = ['#000000', '#f5715b', '#f5d45b', '#5bf5a3', '#5b8af5', '#c45bf5
 export default function Board() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
-  const { roomCode, currentUser, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, sendDrawableAdd, sendChat, setChatOpen: ctxSetChatOpen, drawables, liveDrawables, canUndo, canRedo, undo, redo, clearVote, startClearVote, respondClearVote, messages, unreadCount } = useSocket()
+  const { roomCode, currentUser, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, sendDrawableAdd, sendDrawableUpdate, sendChat, setChatOpen: ctxSetChatOpen, drawables, liveDrawables, canUndo, canRedo, undo, redo, clearVote, startClearVote, respondClearVote, messages, unreadCount } = useSocket()
   const canvasRef = useRef(null)
   const wrapRef = useRef(null)
   const colorBtnRef = useRef(null)
@@ -23,6 +23,8 @@ export default function Board() {
   const chatInputRef = useRef(null)
   const chatScrollRef = useRef(null)
   const textOverlayRef = useRef(null)
+  const transformRef = useRef(null)
+  const transformCleanupRef = useRef(null)
 
   const [activeTool, setActiveTool] = useState('pen')
   const [activeColor, setActiveColor] = useState('#000000')
@@ -31,6 +33,7 @@ export default function Board() {
   const [colorOpen, setColorOpen] = useState(false)
   const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 })
   const [textOverlay, setTextOverlay] = useState(null) // { x, y, value }
+  const [selectedDrawableId, setSelectedDrawableId] = useState(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [draftMsg, setDraftMsg] = useState('')
   const [dragOver, setDragOver] = useState(false)
@@ -40,6 +43,10 @@ export default function Board() {
     const t = requestAnimationFrame(() => textOverlayRef.current?.focus())
     return () => cancelAnimationFrame(t)
   }, [textOverlay])
+
+  useEffect(() => {
+    return () => transformCleanupRef.current?.()
+  }, [])
 
   const roomParam = params.get('room')
   useEffect(() => {
@@ -59,6 +66,135 @@ export default function Board() {
   useEffect(() => {
     sendTool(activeTool)
   }, [activeTool, sendTool])
+
+  const selectedDrawable = drawables.find(d => d.id === selectedDrawableId) || null
+
+  function clamp(n, min, max) {
+    return Math.min(max, Math.max(min, n))
+  }
+
+  function getTextFontSize(drawable) {
+    return Math.max(drawable.size * 4, 14)
+  }
+
+  function estimateTextBox(drawable) {
+    const fontSize = getTextFontSize(drawable)
+    const lines = String(drawable.text || '').split('\n')
+    const longestLine = lines.reduce((max, line) => Math.max(max, line.length), 1)
+    return {
+      w: drawable.width ? drawable.width * canvasSize.w : Math.min(Math.max(longestLine * fontSize * 0.55 + 12, 90), 420),
+      h: drawable.height ? drawable.height * canvasSize.h : Math.max(lines.length * fontSize * 1.22 + 8, fontSize + 10)
+    }
+  }
+
+  function drawableRect(drawable) {
+    if (!drawable?.points?.[0] || !canvasSize.w || !canvasSize.h) return null
+    const x = drawable.points[0].nx * canvasSize.w
+    const y = drawable.points[0].ny * canvasSize.h
+    if (drawable.tool === 'image') {
+      return {
+        x,
+        y,
+        w: (drawable.width || 0.3) * canvasSize.w,
+        h: (drawable.height || 0.3) * canvasSize.h
+      }
+    }
+    if (drawable.tool === 'text') {
+      const box = estimateTextBox(drawable)
+      return { x, y, w: box.w, h: box.h }
+    }
+    return null
+  }
+
+  function findEditableDrawableAt(e, tool) {
+    if (!currentUser || (tool !== 'image' && tool !== 'text')) return null
+    const rect = wrapRef.current?.getBoundingClientRect()
+    if (!rect) return null
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    for (let i = drawables.length - 1; i >= 0; i--) {
+      const d = drawables[i]
+      if (d.socketId !== currentUser.socketId || d.tool !== tool) continue
+      const box = drawableRect(d)
+      if (!box) continue
+      const pad = tool === 'text' ? 6 : 0
+      if (x >= box.x - pad && x <= box.x + box.w + pad && y >= box.y - pad && y <= box.y + box.h + pad) {
+        return d
+      }
+    }
+    return null
+  }
+
+  function startTransform(e, drawable, mode) {
+    if (!drawable || !wrapRef.current) return
+    e.preventDefault()
+    e.stopPropagation()
+    transformCleanupRef.current?.()
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+    setSelectedDrawableId(drawable.id)
+    transformRef.current = {
+      id: drawable.id,
+      mode,
+      startX: e.clientX,
+      startY: e.clientY,
+      original: {
+        point: { ...drawable.points[0] },
+        width: drawable.width || (drawable.tool === 'image' ? 0.3 : estimateTextBox(drawable).w / canvasSize.w),
+        height: drawable.height || (drawable.tool === 'image' ? 0.3 : estimateTextBox(drawable).h / canvasSize.h),
+        tool: drawable.tool
+      }
+    }
+    const onMove = (event) => updateTransform(event)
+    const cleanup = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
+      transformCleanupRef.current = null
+    }
+    const onUp = (event) => {
+      updateTransform(event, true)
+      cleanup()
+    }
+    transformCleanupRef.current = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
+      transformCleanupRef.current = null
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
+  }
+
+  function updateTransform(e, final = false) {
+    const t = transformRef.current
+    if (!t || !canvasSize.w || !canvasSize.h) return
+    const dx = (e.clientX - t.startX) / canvasSize.w
+    const dy = (e.clientY - t.startY) / canvasSize.h
+    const updates = {}
+    if (t.mode === 'move') {
+      const width = t.original.width
+      const height = t.original.height
+      updates.points = [{
+        nx: clamp(t.original.point.nx + dx, 0, Math.max(0, 1 - width)),
+        ny: clamp(t.original.point.ny + dy, 0, Math.max(0, 1 - height))
+      }]
+    } else {
+      const minW = t.original.tool === 'text' ? 0.08 : 0.05
+      const maxW = Math.max(minW, 1 - t.original.point.nx)
+      updates.width = clamp(t.original.width + dx, minW, maxW)
+      if (t.original.tool === 'image') {
+        const ratio = t.original.height / t.original.width
+        updates.height = clamp(updates.width * ratio, 0.05, Math.max(0.05, 1 - t.original.point.ny))
+      } else {
+        const minH = Math.max(24 / canvasSize.h, 0.035)
+        const maxH = Math.max(minH, 1 - t.original.point.ny)
+        updates.height = clamp(t.original.height + dy, minH, maxH)
+      }
+    }
+    sendDrawableUpdate(t.id, updates)
+    if (final) transformRef.current = null
+  }
 
   function handlePointerMove(e) {
     if (drawingIdRef.current) return
@@ -88,14 +224,26 @@ export default function Board() {
 
   function handleCanvasPointerDown(e) {
     if (e.button !== 0) return
+    const editable = findEditableDrawableAt(e, activeTool)
+    if (editable) {
+      startTransform(e, editable, 'move')
+      return
+    }
+    setSelectedDrawableId(null)
     if (activeTool === 'text') {
       const wrapRect = wrapRef.current.getBoundingClientRect()
       const point = normalizedPoint(e)
+      const fontSize = Math.max(strokeSize * 4, 14)
+      const x = e.clientX - wrapRect.left
+      const y = e.clientY - wrapRect.top
+      const width = clamp(220, 90, Math.max(90, wrapRect.width - x - 16))
       setTextOverlay({
-        x: e.clientX - wrapRect.left,
-        y: e.clientY - wrapRect.top,
+        x,
+        y,
         nx: point.nx,
         ny: point.ny,
+        width,
+        height: Math.max(fontSize * 2.4, 48),
         value: ''
       })
       sendCursor(point.nx, point.ny)
@@ -115,6 +263,9 @@ export default function Board() {
   }
 
   function handleCanvasPointerMove(e) {
+    if (transformRef.current) {
+      return
+    }
     if (!drawingIdRef.current) return
     const now = performance.now()
     if (now - lastExtendRef.current < 16) return
@@ -124,6 +275,10 @@ export default function Board() {
   }
 
   function handleCanvasPointerUp(e) {
+    if (transformRef.current) {
+      e.currentTarget.releasePointerCapture?.(e.pointerId)
+      return
+    }
     if (!drawingIdRef.current) return
     // Capture final point if we haven't yet (short tap or throttled)
     const point = normalizedPoint(e)
@@ -136,16 +291,22 @@ export default function Board() {
     if (!textOverlay) return
     const text = (textOverlay.value || '').trim()
     if (!text) { setTextOverlay(null); return }
+    const box = textOverlayRef.current?.getBoundingClientRect()
+    const width = box && canvasSize.w ? box.width / canvasSize.w : textOverlay.width / canvasSize.w
+    const height = box && canvasSize.h ? box.height / canvasSize.h : textOverlay.height / canvasSize.h
     const id = (crypto.randomUUID?.() || String(Date.now()) + Math.random())
-    sendDrawableAdd({
+    const localId = sendDrawableAdd({
       id,
       tool: 'text',
       color: activeColor,
       size: strokeSize,
       points: [{ nx: textOverlay.nx, ny: textOverlay.ny }],
+      width: clamp(width, 0.05, 1.5),
+      height: clamp(height, 0.03, 1.5),
       text: text.slice(0, 500)
     })
     setTextOverlay(null)
+    if (localId) setSelectedDrawableId(localId)
   }
 
   // Compress an image file to a data URL within size limits
@@ -186,7 +347,7 @@ export default function Board() {
     const drawableW = targetW
     const drawableH = (targetW * (W / H)) * aspect
     const id = (crypto.randomUUID?.() || String(Date.now()) + Math.random())
-    sendDrawableAdd({
+    const localId = sendDrawableAdd({
       id,
       tool: 'image',
       color: '#000000',
@@ -196,6 +357,10 @@ export default function Board() {
       height: drawableH,
       dataUrl: outUrl
     })
+    if (localId) {
+      setActiveTool('image')
+      setSelectedDrawableId(localId)
+    }
   }
 
   function handleFilePicked(e) {
@@ -471,9 +636,9 @@ export default function Board() {
             </svg>
           </button>
           <button
-            className="tool-btn"
+            className={'tool-btn' + (activeTool === 'image' ? ' active' : '')}
             title="Insert image"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => { setActiveTool('image'); fileInputRef.current?.click() }}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -523,25 +688,49 @@ export default function Board() {
             onPointerCancel={handleCanvasPointerUp}
           />
           {textOverlay && (
-            <input
+            <textarea
               ref={textOverlayRef}
               className="text-overlay"
-              style={{ left: textOverlay.x, top: textOverlay.y, color: activeColor, fontSize: Math.max(strokeSize * 4, 14) }}
+              style={{
+                left: textOverlay.x,
+                top: textOverlay.y,
+                width: textOverlay.width,
+                height: textOverlay.height,
+                color: activeColor,
+                fontSize: Math.max(strokeSize * 4, 14)
+              }}
               value={textOverlay.value}
               autoFocus
-              type="text"
               onPointerDown={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
               onChange={(e) => setTextOverlay(o => o ? { ...o, value: e.target.value } : o)}
               onKeyDown={(e) => {
                 e.stopPropagation()
-                if (e.key === 'Enter') { e.preventDefault(); commitTextOverlay() }
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); commitTextOverlay() }
                 else if (e.key === 'Escape') { setTextOverlay(null) }
               }}
               onBlur={commitTextOverlay}
-              placeholder="Type here…"
+              placeholder="Type here..."
             />
+          )}
+          {selectedDrawable && drawableRect(selectedDrawable) && (
+            <div
+              className="drawable-selection"
+              style={{
+                left: drawableRect(selectedDrawable).x,
+                top: drawableRect(selectedDrawable).y,
+                width: drawableRect(selectedDrawable).w,
+                height: drawableRect(selectedDrawable).h
+              }}
+            >
+              <button
+                className="drawable-resize-handle"
+                type="button"
+                aria-label="Resize selected drawing"
+                onPointerDown={(e) => startTransform(e, selectedDrawable, 'resize')}
+              />
+            </div>
           )}
           {drawables.length === 0 && Object.keys(liveDrawables).length === 0 && !textOverlay && (
             <span className="board-overlay-text">Select a tool and start drawing</span>

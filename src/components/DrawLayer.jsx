@@ -13,7 +13,26 @@ function drawDrawable(ctx, d, W, H, imageCache, onImageLoad) {
     ctx.font = `${fontSize}px 'Outfit', sans-serif`
     ctx.fillStyle = d.color
     ctx.textBaseline = 'top'
-    ctx.fillText(d.text, px(d.points[0].nx), py(d.points[0].ny))
+    const x = px(d.points[0].nx)
+    const y = py(d.points[0].ny)
+    const maxWidth = d.width ? d.width * W : Infinity
+    const lineHeight = fontSize * 1.22
+    const lines = []
+    for (const rawLine of String(d.text).split('\n')) {
+      const words = rawLine.split(/(\s+)/).filter(Boolean)
+      let line = ''
+      for (const word of words) {
+        const test = line + word
+        if (line && Number.isFinite(maxWidth) && ctx.measureText(test).width > maxWidth) {
+          lines.push(line.trimEnd())
+          line = word.trimStart()
+        } else {
+          line = test
+        }
+      }
+      lines.push(line || ' ')
+    }
+    lines.forEach((line, i) => ctx.fillText(line, x, y + i * lineHeight, maxWidth))
     ctx.restore()
     return
   }
