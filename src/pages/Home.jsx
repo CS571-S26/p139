@@ -60,7 +60,7 @@ export default function Home() {
               <path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
             </svg>
           </div>
-          <h1 className="h1">Draw together,<br />in real time.</h1>
+          <h1 className="h1">Draw together,<br /><span className="h1-accent">in real time.</span></h1>
           <p className="sub">Pick a name and start a room. No signup.</p>
           <div className="form">
           <div className="field">
