@@ -9,7 +9,7 @@ function drawDrawable(ctx, d, W, H, imageCache, onImageLoad) {
   if (d.tool === 'text') {
     if (!d.text) return
     ctx.save()
-    const fontSize = Math.max(d.size * 4, 14)
+    const fontSize = Math.max(d.size * 4, 16)
     ctx.font = `${fontSize}px 'Outfit', sans-serif`
     ctx.fillStyle = d.color
     ctx.textBaseline = 'top'

@@ -137,11 +137,11 @@ export default function Board() {
   }
 
   function getTextFontSize(drawable) {
-    return Math.max(drawable.size * 4, 14)
+    return Math.max(drawable.size * 4, 16)
   }
 
   function textSizeToFontSize(size) {
-    return Math.max(size * 4, 14)
+    return Math.max(size * 4, 16)
   }
 
   function estimateTextBox(drawable) {
@@ -476,7 +476,7 @@ export default function Board() {
       e.preventDefault()
       const wrapRect = wrapRef.current.getBoundingClientRect()
       const point = normalizedPoint(e)
-      const fontSize = Math.max(strokeSize * 4, 14)
+      const fontSize = Math.max(strokeSize * 4, 16)
       const x = e.clientX - wrapRect.left
       const y = e.clientY - wrapRect.top
       const width = clamp(220, 90, Math.max(90, wrapRect.width - x - 16))
