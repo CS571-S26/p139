@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useSocket } from '../contexts/SocketContext'
 import RemoteCursors from '../components/RemoteCursors'
@@ -11,7 +11,7 @@ const PRESETS = ['#000000', '#f5715b', '#f5d45b', '#5bf5a3', '#5b8af5', '#c45bf5
 export default function Board() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
-  const { roomCode, currentUser, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, sendDrawableAdd, sendDrawableUpdate, sendChat, setChatOpen: ctxSetChatOpen, drawables, liveDrawables, canUndo, canRedo, undo, redo, clearVote, startClearVote, respondClearVote, messages, unreadCount } = useSocket()
+  const { roomCode, currentUser, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, sendDrawableAdd, sendDrawableUpdate, sendDrawableDelete, sendChat, setChatOpen: ctxSetChatOpen, drawables, liveDrawables, canUndo, canRedo, undo, redo, clearVote, startClearVote, respondClearVote, messages, unreadCount } = useSocket()
   const canvasRef = useRef(null)
   const wrapRef = useRef(null)
   const colorBtnRef = useRef(null)
@@ -25,11 +25,15 @@ export default function Board() {
   const textOverlayRef = useRef(null)
   const textFocusTimerRef = useRef(null)
   const textIgnoreBlurUntilRef = useRef(0)
+  const textJustCommittedRef = useRef(false)
+  const textJustCommittedTimerRef = useRef(null)
   const textOverlayResizeRef = useRef(null)
   const textOverlayResizeCleanupRef = useRef(null)
   const imageAspectCacheRef = useRef(new Map())
   const transformRef = useRef(null)
   const transformCleanupRef = useRef(null)
+  const marqueeRef = useRef(null)
+  const marqueeCleanupRef = useRef(null)
 
   const [activeTool, setActiveTool] = useState('pen')
   const [activeColor, setActiveColor] = useState('#000000')
@@ -38,7 +42,8 @@ export default function Board() {
   const [colorOpen, setColorOpen] = useState(false)
   const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 })
   const [textOverlay, setTextOverlay] = useState(null) // { x, y, value }
-  const [selectedDrawableId, setSelectedDrawableId] = useState(null)
+  const [selectedDrawableIds, setSelectedDrawableIds] = useState([])
+  const [selectionRect, setSelectionRect] = useState(null)
   const [, setImageAspectVersion] = useState(0)
   const [chatOpen, setChatOpen] = useState(false)
   const [draftMsg, setDraftMsg] = useState('')
@@ -64,8 +69,10 @@ export default function Board() {
   useEffect(() => {
     return () => {
       transformCleanupRef.current?.()
+      marqueeCleanupRef.current?.()
       textOverlayResizeCleanupRef.current?.()
       if (textFocusTimerRef.current) clearTimeout(textFocusTimerRef.current)
+      if (textJustCommittedTimerRef.current) clearTimeout(textJustCommittedTimerRef.current)
     }
   }, [])
 
@@ -89,7 +96,16 @@ export default function Board() {
     sendTool(activeTool)
   }, [activeTool, sendTool])
 
-  const selectedDrawable = drawables.find(d => d.id === selectedDrawableId) || null
+  useEffect(() => {
+    setSelectedDrawableIds(ids => {
+      const next = ids.filter(id => drawables.some(d => d.id === id))
+      return next.length === ids.length ? ids : next
+    })
+  }, [drawables])
+
+  const selectedIdSet = new Set(selectedDrawableIds)
+  const selectedDrawables = drawables.filter(d => selectedIdSet.has(d.id))
+  const selectedDrawable = selectedDrawables.length === 1 ? selectedDrawables[0] : null
   const selectedEditableText = selectedDrawable?.tool === 'text' && selectedDrawable.socketId === currentUser?.socketId
   const activeSize = textOverlay ? (textOverlay.size || strokeSize) : selectedEditableText ? (selectedDrawable.size || strokeSize) : strokeSize
 
@@ -155,21 +171,48 @@ export default function Board() {
       const box = estimateTextBox(drawable)
       return { x, y, w: box.w, h: box.h }
     }
-    return null
+    const pad = Math.max((drawable.size || 2) * 2, 8)
+    const xs = drawable.points.map(p => p.nx * canvasSize.w)
+    const ys = drawable.points.map(p => p.ny * canvasSize.h)
+    const minX = Math.min(...xs) - pad
+    const maxX = Math.max(...xs) + pad
+    const minY = Math.min(...ys) - pad
+    const maxY = Math.max(...ys) + pad
+    return {
+      x: clamp(minX, 0, canvasSize.w),
+      y: clamp(minY, 0, canvasSize.h),
+      w: Math.max(12, clamp(maxX, 0, canvasSize.w) - clamp(minX, 0, canvasSize.w)),
+      h: Math.max(12, clamp(maxY, 0, canvasSize.h) - clamp(minY, 0, canvasSize.h))
+    }
   }
 
-  function findEditableDrawableAt(e, tool) {
-    if (!currentUser || (tool !== 'image' && tool !== 'text')) return null
+  function unionRects(rects) {
+    const valid = rects.filter(Boolean)
+    if (valid.length === 0) return null
+    const left = Math.min(...valid.map(r => r.x))
+    const top = Math.min(...valid.map(r => r.y))
+    const right = Math.max(...valid.map(r => r.x + r.w))
+    const bottom = Math.max(...valid.map(r => r.y + r.h))
+    return { x: left, y: top, w: right - left, h: bottom - top }
+  }
+
+  function rectsIntersect(a, b) {
+    return a.x <= b.x + b.w && a.x + a.w >= b.x && a.y <= b.y + b.h && a.y + a.h >= b.y
+  }
+
+  function findDrawableAt(e, allowedTools = null) {
+    if (!currentUser) return null
     const rect = wrapRef.current?.getBoundingClientRect()
     if (!rect) return null
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
     for (let i = drawables.length - 1; i >= 0; i--) {
       const d = drawables[i]
-      if (d.socketId !== currentUser.socketId || d.tool !== tool) continue
+      if (d.socketId !== currentUser.socketId) continue
+      if (allowedTools && !allowedTools.includes(d.tool)) continue
       const box = drawableRect(d)
       if (!box) continue
-      const pad = tool === 'text' ? 6 : 0
+      const pad = d.tool === 'text' ? 6 : 0
       if (x >= box.x - pad && x <= box.x + box.w + pad && y >= box.y - pad && y <= box.y + box.h + pad) {
         return d
       }
@@ -183,12 +226,23 @@ export default function Board() {
     e.stopPropagation()
     transformCleanupRef.current?.()
     e.currentTarget.setPointerCapture?.(e.pointerId)
-    setSelectedDrawableId(drawable.id)
+    const activeIds = selectedDrawableIds.includes(drawable.id) && mode === 'move'
+      ? selectedDrawableIds
+      : [drawable.id]
+    setSelectedDrawableIds(activeIds)
+    const movingDrawables = drawables.filter(d => activeIds.includes(d.id) && d.socketId === currentUser?.socketId)
+    const movingBounds = unionRects(movingDrawables.map(d => drawableRect(d)))
     transformRef.current = {
       id: drawable.id,
       mode,
+      ids: activeIds,
       startX: e.clientX,
       startY: e.clientY,
+      bounds: movingBounds,
+      originals: movingDrawables.map(d => ({
+        id: d.id,
+        points: d.points.map(p => ({ ...p }))
+      })),
       original: {
         point: { ...drawable.points[0] },
         width: drawable.width || (drawable.tool === 'image' ? 0.3 : estimateTextBox(drawable).w / canvasSize.w),
@@ -222,6 +276,61 @@ export default function Board() {
     window.addEventListener('pointercancel', onUp)
   }
 
+  function pointerInCanvas(e) {
+    const rect = wrapRef.current?.getBoundingClientRect()
+    if (!rect) return { x: 0, y: 0 }
+    return {
+      x: clamp(e.clientX - rect.left, 0, rect.width),
+      y: clamp(e.clientY - rect.top, 0, rect.height)
+    }
+  }
+
+  function startMarqueeSelect(e) {
+    if (!wrapRef.current || !currentUser) return
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+    marqueeCleanupRef.current?.()
+    const start = pointerInCanvas(e)
+    const makeRect = (point) => ({
+      x: Math.min(start.x, point.x),
+      y: Math.min(start.y, point.y),
+      w: Math.abs(point.x - start.x),
+      h: Math.abs(point.y - start.y)
+    })
+    marqueeRef.current = { start }
+    setSelectionRect({ x: start.x, y: start.y, w: 0, h: 0 })
+
+    const onMove = (event) => {
+      if (!marqueeRef.current) return
+      setSelectionRect(makeRect(pointerInCanvas(event)))
+    }
+    const cleanup = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
+      marqueeRef.current = null
+      marqueeCleanupRef.current = null
+    }
+    const onUp = (event) => {
+      const rect = makeRect(pointerInCanvas(event))
+      const ids = rect.w < 6 && rect.h < 6
+        ? []
+        : drawables
+            .filter(d => d.socketId === currentUser.socketId)
+            .filter(d => {
+              const box = drawableRect(d)
+              return box && rectsIntersect(rect, box)
+            })
+            .map(d => d.id)
+      setSelectedDrawableIds(ids)
+      setSelectionRect(null)
+      cleanup()
+    }
+    marqueeCleanupRef.current = cleanup
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
+  }
+
   function updateTransform(e, final = false) {
     const t = transformRef.current
     if (!t || !canvasSize.w || !canvasSize.h) return
@@ -229,12 +338,22 @@ export default function Board() {
     const dy = (e.clientY - t.startY) / canvasSize.h
     const updates = {}
     if (t.mode === 'move') {
-      const width = t.original.width
-      const height = t.original.height
-      updates.points = [{
-        nx: clamp(t.original.point.nx + dx, 0, Math.max(0, 1 - width)),
-        ny: clamp(t.original.point.ny + dy, 0, Math.max(0, 1 - height))
-      }]
+      let safeDx = dx
+      let safeDy = dy
+      if (t.bounds) {
+        safeDx = clamp(dx, -t.bounds.x / canvasSize.w, (canvasSize.w - t.bounds.x - t.bounds.w) / canvasSize.w)
+        safeDy = clamp(dy, -t.bounds.y / canvasSize.h, (canvasSize.h - t.bounds.y - t.bounds.h) / canvasSize.h)
+      }
+      for (const original of t.originals) {
+        sendDrawableUpdate(original.id, {
+          points: original.points.map(p => ({
+            nx: clamp(p.nx + safeDx, 0, 1),
+            ny: clamp(p.ny + safeDy, 0, 1)
+          }))
+        })
+      }
+      if (final) transformRef.current = null
+      return
     } else {
       const minW = t.original.tool === 'text' ? 0.08 : 0.05
       const maxW = Math.max(minW, 1 - t.original.point.nx)
@@ -277,7 +396,7 @@ export default function Board() {
     if (!box || !drawable.points?.[0]) return
     setActiveTool('text')
     setActiveColor(drawable.color || activeColor)
-    setSelectedDrawableId(drawable.id)
+    setSelectedDrawableIds([drawable.id])
     textIgnoreBlurUntilRef.current = performance.now() + 350
     setTextOverlay({
       editingId: drawable.id,
@@ -321,12 +440,18 @@ export default function Board() {
 
   function handleCanvasPointerDown(e) {
     if (e.pointerType === 'mouse' && e.button !== 0) return
+    if (!textOverlay && activeTool === 'text' && textJustCommittedRef.current) {
+      e.preventDefault()
+      return
+    }
     if (textOverlay) {
       e.preventDefault()
       commitTextOverlay()
       return
     }
-    const editable = findEditableDrawableAt(e, activeTool)
+    const editable = activeTool === 'text' || activeTool === 'image'
+      ? findDrawableAt(e, [activeTool])
+      : null
     if (editable) {
       if (activeTool === 'text') {
         e.preventDefault()
@@ -336,7 +461,17 @@ export default function Board() {
       startTransform(e, editable, 'move')
       return
     }
-    setSelectedDrawableId(null)
+    if (activeTool === 'select') {
+      e.preventDefault()
+      const hit = findDrawableAt(e)
+      if (hit) {
+        startTransform(e, hit, 'move')
+      } else {
+        startMarqueeSelect(e)
+      }
+      return
+    }
+    setSelectedDrawableIds([])
     if (activeTool === 'text') {
       e.preventDefault()
       const wrapRect = wrapRef.current.getBoundingClientRect()
@@ -374,7 +509,7 @@ export default function Board() {
   }
 
   function handleCanvasPointerMove(e) {
-    if (transformRef.current) {
+    if (transformRef.current || marqueeRef.current) {
       return
     }
     if (!drawingIdRef.current) return
@@ -390,6 +525,10 @@ export default function Board() {
       e.currentTarget.releasePointerCapture?.(e.pointerId)
       return
     }
+    if (marqueeRef.current) {
+      e.currentTarget.releasePointerCapture?.(e.pointerId)
+      return
+    }
     if (!drawingIdRef.current) return
     // Capture final point if we haven't yet (short tap or throttled)
     const point = normalizedPoint(e)
@@ -400,6 +539,12 @@ export default function Board() {
 
   function commitTextOverlay() {
     if (!textOverlay) return
+    textJustCommittedRef.current = true
+    if (textJustCommittedTimerRef.current) clearTimeout(textJustCommittedTimerRef.current)
+    textJustCommittedTimerRef.current = setTimeout(() => {
+      textJustCommittedRef.current = false
+      textJustCommittedTimerRef.current = null
+    }, 250)
     const text = (textOverlay.value || '').trim()
     if (!text) { setTextOverlay(null); return }
     const box = textOverlayRef.current?.getBoundingClientRect()
@@ -413,7 +558,7 @@ export default function Board() {
         height: clamp(height, 0.03, 1.5),
         size
       })
-      setSelectedDrawableId(textOverlay.editingId)
+      setSelectedDrawableIds([textOverlay.editingId])
       setTextOverlay(null)
       return
     }
@@ -429,7 +574,7 @@ export default function Board() {
       text: text.slice(0, 500)
     })
     setTextOverlay(null)
-    if (localId) setSelectedDrawableId(localId)
+    if (localId) setSelectedDrawableIds([localId])
   }
 
   function handleTextOverlayBlur() {
@@ -444,6 +589,15 @@ export default function Board() {
     }
     commitTextOverlay()
   }
+
+  const deleteSelectedDrawables = useCallback(() => {
+    const ids = selectedDrawables
+      .filter(d => d.socketId === currentUser?.socketId)
+      .map(d => d.id)
+    if (ids.length === 0) return
+    sendDrawableDelete(ids)
+    setSelectedDrawableIds([])
+  }, [currentUser?.socketId, selectedDrawables, sendDrawableDelete])
 
   function startTextOverlayResize(e) {
     if (!textOverlay || !wrapRef.current) return
@@ -539,7 +693,7 @@ export default function Board() {
     })
     if (localId) {
       setActiveTool('image')
-      setSelectedDrawableId(localId)
+      setSelectedDrawableIds([localId])
     }
   }
 
@@ -608,6 +762,11 @@ export default function Board() {
     function onKey(e) {
       const tag = e.target.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if ((e.key === 'Backspace' || e.key === 'Delete') && selectedDrawableIds.length > 0) {
+        e.preventDefault()
+        deleteSelectedDrawables()
+        return
+      }
       const mod = e.ctrlKey || e.metaKey
       if (!mod) return
       if (e.key === 'z' && !e.shiftKey) {
@@ -618,7 +777,7 @@ export default function Board() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [undo, redo])
+  }, [undo, redo, selectedDrawableIds, deleteSelectedDrawables])
 
   function handleExportPng() {
     const c = canvasRef.current
@@ -645,6 +804,9 @@ export default function Board() {
 
   const isShapeTool = ['rect', 'circle', 'line', 'triangle', 'arrow', 'star'].includes(activeTool)
   const isInitiator = clearVote && currentUser && clearVote.initiatorSocketId === currentUser.socketId
+  const selectionBounds = !textOverlay ? unionRects(selectedDrawables.map(d => drawableRect(d))) : null
+  const hasSelection = selectedDrawables.length > 0
+  const canResizeSelection = !!selectedDrawable && ['text', 'image'].includes(selectedDrawable.tool)
 
   if (!hasJoinedRoom) return null
 
@@ -652,6 +814,15 @@ export default function Board() {
     <div className="board-page">
       <div className="board-body">
         <div className="board-toolbar">
+          <button
+            className={'tool-btn' + (activeTool === 'select' ? ' active' : '')}
+            onClick={() => setActiveTool('select')}
+            title="Select"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 3l10 9-5 1.2 3.2 6.3-2.8 1.4-3.1-6.2L4 18z" />
+            </svg>
+          </button>
           <button
             className={'tool-btn' + (activeTool === 'pen' ? ' active' : '')}
             onClick={() => setActiveTool('pen')}
@@ -794,10 +965,10 @@ export default function Board() {
           <div className="tool-divider" />
 
           <button
-            className={'tool-btn' + (clearVote ? ' disabled' : '')}
-            title="Clear canvas"
-            onClick={startClearVote}
-            disabled={!!clearVote}
+            className={'tool-btn' + (clearVote && !hasSelection ? ' disabled' : '')}
+            title={hasSelection ? 'Delete selected' : 'Clear canvas'}
+            onClick={hasSelection ? deleteSelectedDrawables : startClearVote}
+            disabled={!hasSelection && !!clearVote}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="3 6 5 6 21 6" />
@@ -908,22 +1079,47 @@ export default function Board() {
               onPointerDown={startTextOverlayResize}
             />
           )}
-          {!textOverlay && selectedDrawable && drawableRect(selectedDrawable) && (
+          {selectionRect && (
             <div
-              className="drawable-selection"
+              className="selection-marquee"
               style={{
-                left: drawableRect(selectedDrawable).x,
-                top: drawableRect(selectedDrawable).y,
-                width: drawableRect(selectedDrawable).w,
-                height: drawableRect(selectedDrawable).h
+                left: selectionRect.x,
+                top: selectionRect.y,
+                width: selectionRect.w,
+                height: selectionRect.h
+              }}
+            />
+          )}
+          {selectionBounds && (
+            <div
+              className={'drawable-selection' + (selectedDrawables.length > 1 ? ' multi' : '')}
+              style={{
+                left: selectionBounds.x,
+                top: selectionBounds.y,
+                width: selectionBounds.w,
+                height: selectionBounds.h
               }}
             >
               <button
-                className="drawable-resize-handle"
+                className="drawable-delete-handle"
                 type="button"
-                aria-label="Resize selected drawing"
-                onPointerDown={(e) => startTransform(e, selectedDrawable, 'resize')}
-              />
+                aria-label="Delete selected drawing"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={deleteSelectedDrawables}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6L6 18" />
+                  <path d="M6 6l12 12" />
+                </svg>
+              </button>
+              {canResizeSelection && (
+                <button
+                  className="drawable-resize-handle"
+                  type="button"
+                  aria-label="Resize selected drawing"
+                  onPointerDown={(e) => startTransform(e, selectedDrawable, 'resize')}
+                />
+              )}
             </div>
           )}
           {drawables.length === 0 && Object.keys(liveDrawables).length === 0 && !textOverlay && (

@@ -107,6 +107,13 @@ export default function SocketProvider({ children }) {
       s.on('draw-remove', ({ id }) => {
         setDrawables(prev => prev.filter(d => d.id !== id))
       })
+      s.on('draw-delete', ({ ids }) => {
+        if (!Array.isArray(ids)) return
+        const deleted = new Set(ids)
+        setDrawables(prev => prev.filter(d => !deleted.has(d.id)))
+        setUndoStack(prev => prev.filter(id => !deleted.has(id)))
+        setRedoStack(prev => prev.filter(d => !deleted.has(d.id)))
+      })
       s.on('draw-add', ({ drawable }) => {
         setDrawables(prev => prev.some(d => d.id === drawable.id) ? prev : [...prev, drawable])
       })
@@ -269,6 +276,18 @@ export default function SocketProvider({ children }) {
     s.emit('drawable-update', { id, updates })
   }
 
+  function sendDrawableDelete(ids) {
+    const s = socketRef.current
+    if (!s || !s.connected || !currentUser) return
+    const safeIds = Array.from(new Set((ids || []).filter(id => typeof id === 'string'))).slice(0, 100)
+    if (safeIds.length === 0) return
+    const deleted = new Set(safeIds)
+    setDrawables(prev => prev.filter(d => d.socketId !== currentUser.socketId || !deleted.has(d.id)))
+    setUndoStack(prev => prev.filter(id => !deleted.has(id)))
+    setRedoStack(prev => prev.filter(d => !deleted.has(d.id)))
+    s.emit('draw-delete', { ids: safeIds })
+  }
+
   function sendChat(text) {
     const s = socketRef.current
     if (!s || !s.connected) return
@@ -343,7 +362,7 @@ export default function SocketProvider({ children }) {
   }, [])
 
   return (
-    <Ctx.Provider value={{ roomCode, users, currentUser, error, connected, remoteCursors, drawables, liveDrawables, canUndo: undoStack.length > 0, canRedo: redoStack.length > 0, clearVote, messages, unreadCount, createRoom, joinRoom, joinPublicRoom, leaveRoom, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, sendDrawableAdd, sendDrawableUpdate, sendChat, setChatOpen, startClearVote, respondClearVote, sendFeedback, undo, redo }}>
+    <Ctx.Provider value={{ roomCode, users, currentUser, error, connected, remoteCursors, drawables, liveDrawables, canUndo: undoStack.length > 0, canRedo: redoStack.length > 0, clearVote, messages, unreadCount, createRoom, joinRoom, joinPublicRoom, leaveRoom, sendCursor, sendTool, sendDrawStart, sendDrawExtend, sendDrawEnd, sendDrawableAdd, sendDrawableUpdate, sendDrawableDelete, sendChat, setChatOpen, startClearVote, respondClearVote, sendFeedback, undo, redo }}>
       {children}
     </Ctx.Provider>
   )

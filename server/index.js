@@ -475,6 +475,28 @@ io.on('connection', (socket) => {
     io.to(code).emit('draw-update', { drawable: next });
   });
 
+  socket.on('draw-delete', ({ ids } = {}) => {
+    const code = socketRooms.get(socket.id);
+    if (!code) return;
+    const room = rooms.get(code);
+    if (!room) return;
+    if (!Array.isArray(ids)) return;
+
+    const requested = new Set(ids.filter(id => typeof id === 'string').slice(0, 100));
+    if (requested.size === 0) return;
+    const removed = [];
+    room.drawables = room.drawables.filter(d => {
+      if (d.socketId === socket.id && requested.has(d.id)) {
+        removed.push(d.id);
+        return false;
+      }
+      return true;
+    });
+    if (removed.length === 0) return;
+    room.dirty = true;
+    io.to(code).emit('draw-delete', { ids: removed });
+  });
+
   socket.on('chat-send', ({ text } = {}) => {
     const code = socketRooms.get(socket.id);
     if (!code) return;

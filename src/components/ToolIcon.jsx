@@ -8,6 +8,8 @@ export default function ToolIcon({ tool }) {
     strokeLinejoin: 'round'
   }
   switch (tool) {
+    case 'select':
+      return <svg {...common}><path d="M5 3l10 9-5 1.2 3.2 6.3-2.8 1.4-3.1-6.2L4 18z" /></svg>
     case 'pen':
       return <svg {...common}><path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
     case 'eraser':
