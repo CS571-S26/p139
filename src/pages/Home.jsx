@@ -54,14 +54,15 @@ export default function Home() {
   return (
     <>
       <div className="home">
-        <div className="icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-          </svg>
-        </div>
-        <h1 className="h1">Draw together, in real time.</h1>
-        <p className="sub">Pick a name and start a room. No signup.</p>
-        <div className="form">
+        <div className="home-card">
+          <div className="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+            </svg>
+          </div>
+          <h1 className="h1">Draw together,<br />in real time.</h1>
+          <p className="sub">Pick a name and start a room. No signup.</p>
+          <div className="form">
           <div className="field">
             <label htmlFor="name-inp" className="lbl">Your name</label>
             <input
@@ -104,6 +105,7 @@ export default function Home() {
           <button type="button" className="link-btn" onClick={handleJoinPublic}>
             Drop into a random public room
           </button>
+          </div>
         </div>
       </div>
     </>

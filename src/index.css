@@ -109,14 +109,25 @@ nav {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   min-height: 100vh;
   min-height: 100dvh;
-  padding: 2rem 1.5rem; text-align: center;
+  padding: 2rem 1.5rem;
   position: relative; z-index: 3;
 }
-.icon { width: 48px; height: 48px; background: var(--blue); border-radius: 13px; display: grid; place-items: center; margin-bottom: 1.1rem; box-shadow: 0 0 30px rgba(91,138,245,0.2), 0 0 60px rgba(91,138,245,0.05); }
-.icon svg { width: 22px; height: 22px; }
-.h1 { font-size: clamp(2rem, 5vw, 2.8rem); font-weight: 600; letter-spacing: -0.035em; line-height: 1.1; margin-bottom: 0.5rem; }
-.sub { color: var(--gray); font-size: 0.92rem; font-weight: 300; max-width: 440px; line-height: 1.6; margin-bottom: 1.8rem; }
-.form { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 320px; gap: 0.55rem; }
+.home-card {
+  width: 100%; max-width: 400px;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  padding: 2.2rem 1.75rem 1.6rem;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+.icon { width: 44px; height: 44px; background: var(--blue); border-radius: 12px; display: grid; place-items: center; margin-bottom: 1rem; box-shadow: 0 0 30px rgba(91,138,245,0.2), 0 0 60px rgba(91,138,245,0.05); }
+.icon svg { width: 20px; height: 20px; }
+.h1 { font-size: 1.55rem; font-weight: 600; letter-spacing: -0.025em; line-height: 1.2; margin-bottom: 0.5rem; }
+.sub { color: var(--gray); font-size: 0.85rem; font-weight: 400; line-height: 1.5; margin-bottom: 1.4rem; }
+.form { display: flex; flex-direction: column; align-items: stretch; width: 100%; gap: 0.55rem; }
 /* Form labels (Home + other pages) */
 .field { display: flex; flex-direction: column; align-items: stretch; width: 100%; gap: 0.35rem; }
 .lbl { font-size: 0.78rem; font-weight: 500; color: var(--white); text-align: left; }
@@ -744,9 +755,9 @@ textarea.inp { height: auto; min-height: 120px; padding: 0.7rem 0.9rem; resize: 
   nav { padding: 0 1rem; }
   .nav-m { gap: 1.2rem; }
   .home { padding: 2rem 1rem; }
-  .h1 { font-size: 1.6rem; }
-  .sub { font-size: 0.84rem; margin-bottom: 1.4rem; }
-  .form { max-width: 280px; }
+  .home-card { padding: 1.7rem 1.3rem 1.4rem; border-radius: 18px; }
+  .h1 { font-size: 1.35rem; }
+  .sub { font-size: 0.82rem; margin-bottom: 1.2rem; }
   .inp { height: 44px; font-size: 16px; }
   .inp-mono { font-size: 16px; }
   .btn { height: 44px; font-size: 0.88rem; }
@@ -846,11 +857,12 @@ textarea.inp { height: auto; min-height: 120px; padding: 0.7rem 0.9rem; resize: 
 
   /* Compress home page so it fits landscape phone without scrolling */
   .home { padding: 0.8rem 1rem; justify-content: center; }
+  .home-card { padding: 1.1rem 1.2rem 1rem; border-radius: 14px; max-width: 360px; }
   .icon { width: 36px; height: 36px; margin-bottom: 0.5rem; border-radius: 10px; }
   .icon svg { width: 18px; height: 18px; }
-  .h1 { font-size: 1.2rem; margin-bottom: 0.3rem; }
+  .h1 { font-size: 1.15rem; margin-bottom: 0.25rem; }
   .sub { font-size: 0.78rem; margin-bottom: 0.7rem; }
-  .form { max-width: 320px; gap: 0.5rem; }
+  .form { gap: 0.4rem; }
   .inp { height: 38px; }
   .btn { height: 38px; }
 }
