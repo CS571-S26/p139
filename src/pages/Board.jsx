@@ -23,6 +23,8 @@ export default function Board() {
   const chatInputRef = useRef(null)
   const chatScrollRef = useRef(null)
   const textOverlayRef = useRef(null)
+  const textFocusTimerRef = useRef(null)
+  const textIgnoreBlurUntilRef = useRef(0)
   const transformRef = useRef(null)
   const transformCleanupRef = useRef(null)
 
@@ -40,12 +42,26 @@ export default function Board() {
 
   useEffect(() => {
     if (!textOverlay) return
-    const t = requestAnimationFrame(() => textOverlayRef.current?.focus())
-    return () => cancelAnimationFrame(t)
+    const focusOverlay = () => {
+      const el = textOverlayRef.current
+      if (!el) return
+      el.focus({ preventScroll: true })
+      el.setSelectionRange?.(el.value.length, el.value.length)
+    }
+    focusOverlay()
+    const raf = requestAnimationFrame(focusOverlay)
+    textFocusTimerRef.current = setTimeout(focusOverlay, 80)
+    return () => {
+      cancelAnimationFrame(raf)
+      if (textFocusTimerRef.current) clearTimeout(textFocusTimerRef.current)
+    }
   }, [textOverlay])
 
   useEffect(() => {
-    return () => transformCleanupRef.current?.()
+    return () => {
+      transformCleanupRef.current?.()
+      if (textFocusTimerRef.current) clearTimeout(textFocusTimerRef.current)
+    }
   }, [])
 
   const roomParam = params.get('room')
@@ -231,12 +247,14 @@ export default function Board() {
     }
     setSelectedDrawableId(null)
     if (activeTool === 'text') {
+      e.preventDefault()
       const wrapRect = wrapRef.current.getBoundingClientRect()
       const point = normalizedPoint(e)
       const fontSize = Math.max(strokeSize * 4, 14)
       const x = e.clientX - wrapRect.left
       const y = e.clientY - wrapRect.top
       const width = clamp(220, 90, Math.max(90, wrapRect.width - x - 16))
+      textIgnoreBlurUntilRef.current = performance.now() + 350
       setTextOverlay({
         x,
         y,
@@ -307,6 +325,15 @@ export default function Board() {
     })
     setTextOverlay(null)
     if (localId) setSelectedDrawableId(localId)
+  }
+
+  function handleTextOverlayBlur() {
+    const text = (textOverlay?.value || '').trim()
+    if (!text && performance.now() < textIgnoreBlurUntilRef.current) {
+      requestAnimationFrame(() => textOverlayRef.current?.focus({ preventScroll: true }))
+      return
+    }
+    commitTextOverlay()
   }
 
   // Compress an image file to a data URL within size limits
@@ -710,7 +737,7 @@ export default function Board() {
                 if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); commitTextOverlay() }
                 else if (e.key === 'Escape') { setTextOverlay(null) }
               }}
-              onBlur={commitTextOverlay}
+              onBlur={handleTextOverlayBlur}
               placeholder="Type here..."
             />
           )}
