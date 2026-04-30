@@ -36,39 +36,47 @@ export default function Feedback() {
 
   return (
     <div className="home">
-      <div className="icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-        </svg>
+      <div className="home-card home-card-wide">
+        <div className="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          </svg>
+        </div>
+        <h1 className="h1">Send feedback</h1>
+        <p className="sub">Found a bug? Want a feature? Tell us.</p>
+        <form className="form" onSubmit={handleSubmit}>
+          <div className="field">
+            <label htmlFor="fb-name" className="lbl">Name <span className="lbl-meta">(optional)</span></label>
+            <input
+              id="fb-name"
+              className="inp"
+              placeholder="e.g. Alex"
+              maxLength={30}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="fb-msg" className="lbl">Message</label>
+            <textarea
+              id="fb-msg"
+              className="inp"
+              placeholder="Tell us what's on your mind…"
+              maxLength={1000}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              required
+            />
+            <div className="feedback-counter">{message.length} / 1000</div>
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
+            {submitting ? 'Sending…' : 'Send feedback'}
+          </button>
+          <p className={'feedback-status' + (status ? ' ' + status.kind : '')}>
+            {status?.text || ''}
+          </p>
+        </form>
       </div>
-      <h1 className="h1">Send feedback</h1>
-      <p className="sub">Found a bug? Want a feature? Tell us.</p>
-      <form className="form" onSubmit={handleSubmit}>
-        <input
-          className="inp"
-          placeholder="Your name (optional)"
-          maxLength={30}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          aria-label="Your name"
-        />
-        <textarea
-          className="inp"
-          placeholder="Tell us what's on your mind…"
-          maxLength={1000}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          aria-label="Your feedback"
-          required
-        />
-        <div className="feedback-counter">{message.length} / 1000</div>
-        <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
-          {submitting ? 'Sending…' : 'Send feedback'}
-        </button>
-        <p className={'feedback-status' + (status ? ' ' + status.kind : '')}>
-          {status?.text || ''}
-        </p>
-      </form>
     </div>
   )
 }
