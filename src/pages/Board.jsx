@@ -316,6 +316,11 @@ export default function Board() {
 
   function handleCanvasPointerDown(e) {
     if (e.pointerType === 'mouse' && e.button !== 0) return
+    if (textOverlay) {
+      e.preventDefault()
+      commitTextOverlay()
+      return
+    }
     const editable = findEditableDrawableAt(e, activeTool)
     if (editable) {
       if (activeTool === 'text') {
