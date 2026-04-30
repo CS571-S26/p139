@@ -184,7 +184,8 @@ export default function BackgroundAnimation() {
 
     // ── Zone management ──
     let zones = [];
-    function findSpot(s) {
+    function findSpot(s, options = {}) {
+      const { allowFallback = true, padding = 1.6 } = options;
       // Place shapes in a ring around the center content.
       // Inner boundary = just outside the content area
       // Outer boundary = edge of viewport
@@ -205,9 +206,13 @@ export default function BackgroundAnimation() {
         if (x < s + 20 || x > W - s - 20 || y < s + 60 || y > H - s - 20) continue;
         // Collision with existing shapes
         let ok = true;
-        for (const z of zones) if (Math.abs(x - z.x) < z.s * 1.6 + s * 1.6 && Math.abs(y - z.y) < z.s * 1.6 + s * 1.6) ok = false;
+        for (const z of zones) {
+          const minGap = z.s * padding + s * padding;
+          if (Math.hypot(x - z.x, y - z.y) < minGap) ok = false;
+        }
         if (ok) return { x, y };
       }
+      if (!allowFallback) return null;
       // Fallback: place at a random angle on the ring
       const fa = Math.random() * Math.PI * 2;
       const fr = Math.sqrt(innerW * innerW + innerH * innerH) * 1.1;
@@ -310,33 +315,22 @@ export default function BackgroundAnimation() {
 
     function prepopulateBackground() {
       const isCompact = W < 720 || H < 620;
-      const soloCount = isCompact ? 7 : 14;
-      const sceneCount = isCompact ? 0 : 2;
+      const targetCount = isCompact ? 5 : 14;
+      const maxAttempts = targetCount * 7;
 
-      for (let i = 0; i < soloCount; i++) {
+      for (let i = 0, placed = 0; placed < targetCount && i < maxAttempts; i++) {
         const gen = allShapes[Math.floor(Math.random() * allShapes.length)];
-        const s = 34 + Math.random() * 34;
-        const pos = findSpot(s);
+        const s = isCompact ? 20 + Math.random() * 16 : 34 + Math.random() * 34;
+        const pos = findSpot(s, { allowFallback: false, padding: isCompact ? 1.75 : 2.15 });
+        if (!pos) continue;
         const z = { x: pos.x, y: pos.y, s, stroke: null };
         zones.push(z);
-        savePreloaded(gen(pos.x, pos.y, s), gcColors[i % gcColors.length], z, {
+        savePreloaded(gen(pos.x, pos.y, s), gcColors[placed % gcColors.length], z, {
           alpha: 0.55 + Math.random() * 0.45,
-          decay: 0.00022 + Math.random() * 0.00018,
-          delay: Math.floor(Math.random() * 240)
+          decay: 0.000025 + Math.random() * 0.000025,
+          delay: 600 + Math.floor(Math.random() * 1200)
         });
-      }
-
-      for (let i = 0; i < sceneCount; i++) {
-        const fn = scenes[Math.floor(Math.random() * scenes.length)];
-        const s = 35 + Math.random() * 20;
-        const pos = findSpot(s * 2);
-        const z = { x: pos.x, y: pos.y, s: s * 2, stroke: null };
-        zones.push(z);
-        fn(pos.x, pos.y, s).forEach(t => savePreloaded(t.st, gcColors[t.gi], z, {
-          alpha: 0.45 + Math.random() * 0.35,
-          decay: 0.00018 + Math.random() * 0.00018,
-          delay: Math.floor(Math.random() * 360)
-        }));
+        placed++;
       }
     }
 
@@ -364,7 +358,7 @@ export default function BackgroundAnimation() {
       }
 
       if (g.state === 'moving') {
-        g.mp += 0.008;
+        g.mp += 0.012;
         if (g.mp >= 1) {
           g.x = g.tx; g.y = g.ty;
           if (g.isErasing) { g.state = 'erasing'; g.pi = 0; }
@@ -421,9 +415,8 @@ export default function BackgroundAnimation() {
       }
 
       if (g.state === 'drawing') {
-        // 1 point every 2 frames for slow deliberate drawing (~45px/sec)
+        // 1 point per frame keeps the drawing readable without feeling sluggish.
         g.tick++;
-        if (g.tick % 2 !== 0) return;
         const stroke = g.strokes[g.si];
         if (g.pi < stroke.length) {
           const pt = stroke[g.pi];
