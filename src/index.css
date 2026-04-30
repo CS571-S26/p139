@@ -539,12 +539,28 @@ textarea.inp { height: auto; min-height: 120px; padding: 0.7rem 0.9rem; resize: 
   min-width: 80px; min-height: 32px;
   max-width: min(520px, calc(100% - 16px));
   max-height: calc(100% - 16px);
-  resize: both;
+  resize: none;
   overflow: auto;
   z-index: 4;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  touch-action: auto;
 }
 .text-overlay::placeholder { color: rgba(0,0,0,0.35); }
+
+.text-overlay-resize-handle {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--blue);
+  cursor: nwse-resize;
+  z-index: 5;
+  touch-action: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+}
 
 .drawable-selection {
   position: absolute;
@@ -565,7 +581,20 @@ textarea.inp { height: auto; min-height: 120px; padding: 0.7rem 0.9rem; resize: 
   background: var(--blue);
   cursor: nwse-resize;
   pointer-events: auto;
+  touch-action: none;
   box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+}
+
+@media (pointer: coarse) {
+  .text-overlay-resize-handle,
+  .drawable-resize-handle {
+    width: 28px;
+    height: 28px;
+  }
+  .drawable-resize-handle {
+    right: -14px;
+    bottom: -14px;
+  }
 }
 
 /* Drag-over highlight when an image is being dragged onto the canvas */

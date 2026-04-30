@@ -25,6 +25,8 @@ export default function Board() {
   const textOverlayRef = useRef(null)
   const textFocusTimerRef = useRef(null)
   const textIgnoreBlurUntilRef = useRef(0)
+  const textOverlayResizeRef = useRef(null)
+  const textOverlayResizeCleanupRef = useRef(null)
   const imageAspectCacheRef = useRef(new Map())
   const transformRef = useRef(null)
   const transformCleanupRef = useRef(null)
@@ -62,6 +64,7 @@ export default function Board() {
   useEffect(() => {
     return () => {
       transformCleanupRef.current?.()
+      textOverlayResizeCleanupRef.current?.()
       if (textFocusTimerRef.current) clearTimeout(textFocusTimerRef.current)
     }
   }, [])
@@ -87,7 +90,7 @@ export default function Board() {
 
   const selectedDrawable = drawables.find(d => d.id === selectedDrawableId) || null
   const selectedEditableText = selectedDrawable?.tool === 'text' && selectedDrawable.socketId === currentUser?.socketId
-  const activeSize = selectedEditableText ? (selectedDrawable.size || strokeSize) : strokeSize
+  const activeSize = textOverlay ? (textOverlay.size || strokeSize) : selectedEditableText ? (selectedDrawable.size || strokeSize) : strokeSize
 
   function clamp(n, min, max) {
     return Math.min(max, Math.max(min, n))
@@ -118,6 +121,10 @@ export default function Board() {
 
   function getTextFontSize(drawable) {
     return Math.max(drawable.size * 4, 14)
+  }
+
+  function textSizeToFontSize(size) {
+    return Math.max(size * 4, 14)
   }
 
   function estimateTextBox(drawable) {
@@ -188,6 +195,7 @@ export default function Board() {
           ? imageHeightForWidth(drawable, drawable.width || 0.3)
           : drawable.height || estimateTextBox(drawable).h / canvasSize.h,
         aspect: drawable.tool === 'image' ? imageAspect(drawable) : null,
+        size: drawable.size || strokeSize,
         tool: drawable.tool
       }
     }
@@ -241,6 +249,10 @@ export default function Board() {
         const minH = Math.max(24 / canvasSize.h, 0.035)
         const maxH = Math.max(minH, 1 - t.original.point.ny)
         updates.height = clamp(t.original.height + dy, minH, maxH)
+        const widthScale = updates.width / t.original.width
+        const heightScale = updates.height / t.original.height
+        const nextSize = clamp(Math.round(t.original.size * Math.max(widthScale, heightScale)), 1, 64)
+        updates.size = nextSize
       }
     }
     sendDrawableUpdate(t.id, updates)
@@ -252,6 +264,28 @@ export default function Board() {
     if (selectedEditableText) {
       sendDrawableUpdate(selectedDrawable.id, { size: nextSize })
     }
+  }
+
+  function openTextEditorForDrawable(drawable) {
+    const box = drawableRect(drawable)
+    if (!box || !drawable.points?.[0]) return
+    setActiveTool('text')
+    setActiveColor(drawable.color || activeColor)
+    setStrokeSize(drawable.size || strokeSize)
+    setSelectedDrawableId(drawable.id)
+    textIgnoreBlurUntilRef.current = performance.now() + 350
+    setTextOverlay({
+      editingId: drawable.id,
+      x: box.x,
+      y: box.y,
+      nx: drawable.points[0].nx,
+      ny: drawable.points[0].ny,
+      width: box.w,
+      height: box.h,
+      size: drawable.size || strokeSize,
+      color: drawable.color || activeColor,
+      value: drawable.text || ''
+    })
   }
 
   function handlePointerMove(e) {
@@ -281,9 +315,14 @@ export default function Board() {
   }
 
   function handleCanvasPointerDown(e) {
-    if (e.button !== 0) return
+    if (e.pointerType === 'mouse' && e.button !== 0) return
     const editable = findEditableDrawableAt(e, activeTool)
     if (editable) {
+      if (activeTool === 'text') {
+        e.preventDefault()
+        openTextEditorForDrawable(editable)
+        return
+      }
       startTransform(e, editable, 'move')
       return
     }
@@ -304,6 +343,8 @@ export default function Board() {
         ny: point.ny,
         width,
         height: Math.max(fontSize * 2.4, 48),
+        size: strokeSize,
+        color: activeColor,
         value: ''
       })
       sendCursor(point.nx, point.ny)
@@ -354,12 +395,24 @@ export default function Board() {
     const box = textOverlayRef.current?.getBoundingClientRect()
     const width = box && canvasSize.w ? box.width / canvasSize.w : textOverlay.width / canvasSize.w
     const height = box && canvasSize.h ? box.height / canvasSize.h : textOverlay.height / canvasSize.h
+    const size = textOverlay.size || strokeSize
+    if (textOverlay.editingId) {
+      sendDrawableUpdate(textOverlay.editingId, {
+        text: text.slice(0, 500),
+        width: clamp(width, 0.05, 1.5),
+        height: clamp(height, 0.03, 1.5),
+        size
+      })
+      setSelectedDrawableId(textOverlay.editingId)
+      setTextOverlay(null)
+      return
+    }
     const id = (crypto.randomUUID?.() || String(Date.now()) + Math.random())
     const localId = sendDrawableAdd({
       id,
       tool: 'text',
-      color: activeColor,
-      size: strokeSize,
+      color: textOverlay.color || activeColor,
+      size,
       points: [{ nx: textOverlay.nx, ny: textOverlay.ny }],
       width: clamp(width, 0.05, 1.5),
       height: clamp(height, 0.03, 1.5),
@@ -371,11 +424,58 @@ export default function Board() {
 
   function handleTextOverlayBlur() {
     const text = (textOverlay?.value || '').trim()
+    if (textOverlayResizeRef.current) {
+      requestAnimationFrame(() => textOverlayRef.current?.focus({ preventScroll: true }))
+      return
+    }
     if (!text && performance.now() < textIgnoreBlurUntilRef.current) {
       requestAnimationFrame(() => textOverlayRef.current?.focus({ preventScroll: true }))
       return
     }
     commitTextOverlay()
+  }
+
+  function startTextOverlayResize(e) {
+    if (!textOverlay || !wrapRef.current) return
+    e.preventDefault()
+    e.stopPropagation()
+    textOverlayResizeCleanupRef.current?.()
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+    const base = {
+      startX: e.clientX,
+      startY: e.clientY,
+      x: textOverlay.x,
+      y: textOverlay.y,
+      width: textOverlay.width,
+      height: textOverlay.height,
+      size: textOverlay.size || strokeSize
+    }
+    textOverlayResizeRef.current = base
+    const onMove = (event) => {
+      const t = textOverlayResizeRef.current
+      if (!t || !wrapRef.current) return
+      const wrapRect = wrapRef.current.getBoundingClientRect()
+      const maxW = Math.max(90, wrapRect.width - t.x - 8)
+      const maxH = Math.max(32, wrapRect.height - t.y - 8)
+      const width = clamp(t.width + event.clientX - t.startX, 80, maxW)
+      const height = clamp(t.height + event.clientY - t.startY, 32, maxH)
+      const scale = Math.max(width / t.width, height / t.height)
+      const size = clamp(Math.round(t.size * scale), 1, 64)
+      setTextOverlay(o => o ? { ...o, width, height, size } : o)
+    }
+    const cleanup = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
+      textOverlayResizeRef.current = null
+      textOverlayResizeCleanupRef.current = null
+      requestAnimationFrame(() => textOverlayRef.current?.focus({ preventScroll: true }))
+    }
+    const onUp = () => cleanup()
+    textOverlayResizeCleanupRef.current = cleanup
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
   }
 
   // Compress an image file to a data URL within size limits
@@ -766,8 +866,8 @@ export default function Board() {
                 top: textOverlay.y,
                 width: textOverlay.width,
                 height: textOverlay.height,
-                color: activeColor,
-                fontSize: Math.max(strokeSize * 4, 14)
+                color: textOverlay.color || activeColor,
+                fontSize: textSizeToFontSize(textOverlay.size || strokeSize)
               }}
               value={textOverlay.value}
               autoFocus
@@ -784,7 +884,19 @@ export default function Board() {
               placeholder="Type here..."
             />
           )}
-          {selectedDrawable && drawableRect(selectedDrawable) && (
+          {textOverlay && (
+            <button
+              className="text-overlay-resize-handle"
+              type="button"
+              aria-label="Resize text box"
+              style={{
+                left: textOverlay.x + textOverlay.width,
+                top: textOverlay.y + textOverlay.height
+              }}
+              onPointerDown={startTextOverlayResize}
+            />
+          )}
+          {!textOverlay && selectedDrawable && drawableRect(selectedDrawable) && (
             <div
               className="drawable-selection"
               style={{
