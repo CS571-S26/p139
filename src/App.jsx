@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import AuroraBackground from './components/AuroraBackground'
 import BackgroundAnimation from './components/BackgroundAnimation'
@@ -21,6 +21,7 @@ export default function App() {
         <Route path="/board" element={<Board />} />
         <Route path="/about" element={<About />} />
         <Route path="/feedback" element={<Feedback />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   )
