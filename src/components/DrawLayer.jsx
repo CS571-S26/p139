@@ -57,11 +57,13 @@ function drawDrawable(ctx, d, W, H, imageCache, onImageLoad) {
     }
     if (entry instanceof HTMLImageElement) {
       const widthPx = (d.width || 0.3) * W
-      const heightPx = d.aspect
-        ? widthPx * d.aspect
-        : (entry.naturalHeight && entry.naturalWidth)
-          ? widthPx * (entry.naturalHeight / entry.naturalWidth)
-          : (d.height || 0.3) * H
+      const heightPx = d.height
+        ? d.height * H
+        : d.aspect
+          ? widthPx * d.aspect
+          : (entry.naturalHeight && entry.naturalWidth)
+            ? widthPx * (entry.naturalHeight / entry.naturalWidth)
+            : 0.3 * H
       ctx.save()
       ctx.drawImage(
         entry,
