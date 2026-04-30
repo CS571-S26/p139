@@ -10,11 +10,13 @@ import Feedback from './pages/Feedback'
 export default function App() {
   const location = useLocation()
   const onBoard = location.pathname === '/board'
+  const onAbout = location.pathname === '/about'
+  const showAmbience = !onBoard && !onAbout
 
   return (
     <>
-      {!onBoard && <AuroraBackground />}
-      {!onBoard && <BackgroundAnimation />}
+      {showAmbience && <AuroraBackground />}
+      {showAmbience && <BackgroundAnimation />}
       <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />
