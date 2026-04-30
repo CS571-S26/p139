@@ -117,8 +117,13 @@ export default function SocketProvider({ children }) {
       s.on('draw-add', ({ drawable }) => {
         setDrawables(prev => prev.some(d => d.id === drawable.id) ? prev : [...prev, drawable])
       })
-      s.on('draw-update', ({ drawable }) => {
-        setDrawables(prev => prev.map(d => d.id === drawable.id ? drawable : d))
+      s.on('draw-update', ({ drawable, id, updates }) => {
+        if (drawable) {
+          setDrawables(prev => prev.map(d => d.id === drawable.id ? drawable : d))
+          return
+        }
+        if (typeof id !== 'string' || !updates || typeof updates !== 'object') return
+        setDrawables(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d))
       })
       s.on('draw-clear', () => {
         setDrawables([])

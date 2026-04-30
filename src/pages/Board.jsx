@@ -131,7 +131,6 @@ export default function Board() {
   }
 
   function imageHeightForWidth(drawable, widthNorm) {
-    if (typeof drawable.height === 'number' && drawable.height > 0) return drawable.height
     const aspect = imageAspect(drawable)
     if (!aspect || !canvasSize.w || !canvasSize.h) return drawable.height || 0.3
     return (widthNorm * canvasSize.w * aspect) / canvasSize.h

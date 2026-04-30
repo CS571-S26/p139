@@ -472,7 +472,7 @@ io.on('connection', (socket) => {
 
     room.drawables[idx] = next;
     room.dirty = true;
-    io.to(code).emit('draw-update', { drawable: next });
+    io.to(code).emit('draw-update', { id: next.id, updates });
   });
 
   socket.on('draw-delete', ({ ids } = {}) => {
