@@ -260,10 +260,15 @@ export default function Board() {
   }
 
   function handleStrokeSizeChange(nextSize) {
-    setStrokeSize(nextSize)
+    if (textOverlay) {
+      setTextOverlay(o => o ? { ...o, size: nextSize } : o)
+      return
+    }
     if (selectedEditableText) {
       sendDrawableUpdate(selectedDrawable.id, { size: nextSize })
+      return
     }
+    setStrokeSize(nextSize)
   }
 
   function openTextEditorForDrawable(drawable) {
@@ -271,7 +276,6 @@ export default function Board() {
     if (!box || !drawable.points?.[0]) return
     setActiveTool('text')
     setActiveColor(drawable.color || activeColor)
-    setStrokeSize(drawable.size || strokeSize)
     setSelectedDrawableId(drawable.id)
     textIgnoreBlurUntilRef.current = performance.now() + 350
     setTextOverlay({

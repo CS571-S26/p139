@@ -29,10 +29,16 @@ function drawDrawable(ctx, d, W, H, imageCache, onImageLoad) {
         } else {
           line = test
         }
+        while (Number.isFinite(maxWidth) && ctx.measureText(line).width > maxWidth && line.length > 1) {
+          let fit = 1
+          while (fit < line.length && ctx.measureText(line.slice(0, fit + 1)).width <= maxWidth) fit++
+          lines.push(line.slice(0, fit))
+          line = line.slice(fit)
+        }
       }
       lines.push(line || ' ')
     }
-    lines.forEach((line, i) => ctx.fillText(line, x, y + i * lineHeight, maxWidth))
+    lines.forEach((line, i) => ctx.fillText(line, x, y + i * lineHeight))
     ctx.restore()
     return
   }
