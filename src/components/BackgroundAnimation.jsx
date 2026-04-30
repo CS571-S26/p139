@@ -358,8 +358,8 @@ export default function BackgroundAnimation() {
         const z = { x: pos.x, y: pos.y, s, stroke: null };
         zones.push(z);
         savePreloaded(gen(pos.x, pos.y, s), gcColors[placed % gcColors.length], z, {
-          alpha: 0.35 + Math.random() * 0.35,
-          width: 1.6,
+          alpha: 0.9 + Math.random() * 0.1,
+          width: 2,
           decay: 0.000025 + Math.random() * 0.000025,
           delay: 600 + Math.floor(Math.random() * 1200)
         });
