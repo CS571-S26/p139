@@ -35,6 +35,12 @@ export default function Board() {
   const [draftMsg, setDraftMsg] = useState('')
   const [dragOver, setDragOver] = useState(false)
 
+  useEffect(() => {
+    if (!textOverlay) return
+    const t = requestAnimationFrame(() => textOverlayRef.current?.focus())
+    return () => cancelAnimationFrame(t)
+  }, [textOverlay])
+
   const roomParam = params.get('room')
   useEffect(() => {
     if (!roomParam || (!roomCode && !roomParam)) navigate('/')
@@ -82,7 +88,6 @@ export default function Board() {
   function handleCanvasPointerDown(e) {
     if (e.button !== 0) return
     if (activeTool === 'text') {
-      const rect = e.currentTarget.getBoundingClientRect()
       const wrapRect = wrapRef.current.getBoundingClientRect()
       const point = normalizedPoint(e)
       setTextOverlay({
@@ -92,7 +97,7 @@ export default function Board() {
         ny: point.ny,
         value: ''
       })
-      setTimeout(() => textOverlayRef.current?.focus(), 0)
+      sendCursor(point.nx, point.ny)
       return
     }
     if (activeTool === 'image') {
@@ -105,6 +110,7 @@ export default function Board() {
     const id = (crypto.randomUUID?.() || String(Date.now()) + Math.random())
     drawingIdRef.current = id
     lastExtendRef.current = 0
+    sendCursor(point.nx, point.ny)
     sendDrawStart({ id, tool: activeTool, color: activeColor, size: strokeSize, point })
   }
 
@@ -113,13 +119,17 @@ export default function Board() {
     const now = performance.now()
     if (now - lastExtendRef.current < 16) return
     lastExtendRef.current = now
-    sendDrawExtend({ id: drawingIdRef.current, point: normalizedPoint(e) })
+    const point = normalizedPoint(e)
+    sendCursor(point.nx, point.ny)
+    sendDrawExtend({ id: drawingIdRef.current, point })
   }
 
   function handleCanvasPointerUp(e) {
     if (!drawingIdRef.current) return
     // Capture final point if we haven't yet (short tap or throttled)
-    sendDrawExtend({ id: drawingIdRef.current, point: normalizedPoint(e) })
+    const point = normalizedPoint(e)
+    sendCursor(point.nx, point.ny)
+    sendDrawExtend({ id: drawingIdRef.current, point })
     sendDrawEnd({ id: drawingIdRef.current })
     drawingIdRef.current = null
   }
@@ -521,8 +531,13 @@ export default function Board() {
               style={{ left: textOverlay.x, top: textOverlay.y, color: activeColor, fontSize: Math.max(strokeSize * 4, 14) }}
               value={textOverlay.value}
               autoFocus
+              type="text"
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
               onChange={(e) => setTextOverlay(o => o ? { ...o, value: e.target.value } : o)}
               onKeyDown={(e) => {
+                e.stopPropagation()
                 if (e.key === 'Enter') { e.preventDefault(); commitTextOverlay() }
                 else if (e.key === 'Escape') { setTextOverlay(null) }
               }}

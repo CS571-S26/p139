@@ -293,6 +293,7 @@ io.on('connection', (socket) => {
     };
     room.inProgress.set(safeId, d);
     socket.to(code).emit('draw-start', d);
+    socket.to(code).emit('cursor-move', { socketId: socket.id, nx: msg.point.nx, ny: msg.point.ny });
   });
 
   socket.on('draw-extend', ({ id, point } = {}) => {
@@ -315,6 +316,7 @@ io.on('connection', (socket) => {
       point,
       replace: d.tool !== 'pen' && d.tool !== 'eraser'
     });
+    socket.to(code).emit('cursor-move', { socketId: socket.id, nx: point.nx, ny: point.ny });
   });
 
   socket.on('draw-end', ({ id } = {}) => {
