@@ -61,6 +61,7 @@ export default function Board() {
   }, [activeTool, sendTool])
 
   function handlePointerMove(e) {
+    if (drawingIdRef.current) return
     const now = performance.now()
     if (now - lastSentRef.current < 33) return
     lastSentRef.current = now
@@ -110,7 +111,6 @@ export default function Board() {
     const id = (crypto.randomUUID?.() || String(Date.now()) + Math.random())
     drawingIdRef.current = id
     lastExtendRef.current = 0
-    sendCursor(point.nx, point.ny)
     sendDrawStart({ id, tool: activeTool, color: activeColor, size: strokeSize, point })
   }
 
@@ -120,7 +120,6 @@ export default function Board() {
     if (now - lastExtendRef.current < 16) return
     lastExtendRef.current = now
     const point = normalizedPoint(e)
-    sendCursor(point.nx, point.ny)
     sendDrawExtend({ id: drawingIdRef.current, point })
   }
 
@@ -128,7 +127,6 @@ export default function Board() {
     if (!drawingIdRef.current) return
     // Capture final point if we haven't yet (short tap or throttled)
     const point = normalizedPoint(e)
-    sendCursor(point.nx, point.ny)
     sendDrawExtend({ id: drawingIdRef.current, point })
     sendDrawEnd({ id: drawingIdRef.current })
     drawingIdRef.current = null

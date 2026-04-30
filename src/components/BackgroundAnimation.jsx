@@ -97,10 +97,21 @@ export default function BackgroundAnimation() {
     }
     function genTree(cx, cy, s) {
       return [
-        [{ x: cx, y: cy + s * .65 }, { x: cx, y: cy + s * .05 }],
-        [{ x: cx - s * .34, y: cy + s * .25 }, { x: cx, y: cy - s * .12 }, { x: cx + s * .34, y: cy + s * .25 }],
-        [{ x: cx - s * .42, y: cy - s * .02 }, { x: cx, y: cy - s * .48 }, { x: cx + s * .42, y: cy - s * .02 }],
-        [{ x: cx - s * .28, y: cy - s * .26 }, { x: cx, y: cy - s * .68 }, { x: cx + s * .28, y: cy - s * .26 }]
+        [
+          { x: cx, y: cy - s * .72 },
+          { x: cx - s * .28, y: cy - s * .3 },
+          { x: cx - s * .12, y: cy - s * .3 },
+          { x: cx - s * .44, y: cy + s * .12 },
+          { x: cx - s * .2, y: cy + s * .12 },
+          { x: cx - s * .54, y: cy + s * .5 },
+          { x: cx + s * .54, y: cy + s * .5 },
+          { x: cx + s * .2, y: cy + s * .12 },
+          { x: cx + s * .44, y: cy + s * .12 },
+          { x: cx + s * .12, y: cy - s * .3 },
+          { x: cx + s * .28, y: cy - s * .3 },
+          { x: cx, y: cy - s * .72 }
+        ],
+        [{ x: cx, y: cy + s * .5 }, { x: cx, y: cy + s * .78 }]
       ];
     }
     function genSun(cx, cy, s) {
