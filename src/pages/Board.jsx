@@ -237,6 +237,7 @@ export default function Board() {
       ids: activeIds,
       startX: e.clientX,
       startY: e.clientY,
+      lastEmitAt: 0,
       bounds: movingBounds,
       originals: movingDrawables.map(d => ({
         id: d.id,
@@ -332,6 +333,9 @@ export default function Board() {
   function updateTransform(e, final = false) {
     const t = transformRef.current
     if (!t || !canvasSize.w || !canvasSize.h) return
+    const now = performance.now()
+    const shouldEmit = final || now - t.lastEmitAt > 50
+    if (shouldEmit) t.lastEmitAt = now
     const dx = (e.clientX - t.startX) / canvasSize.w
     const dy = (e.clientY - t.startY) / canvasSize.h
     const updates = {}
@@ -343,12 +347,14 @@ export default function Board() {
         safeDy = clamp(dy, -t.bounds.y / canvasSize.h, (canvasSize.h - t.bounds.y - t.bounds.h) / canvasSize.h)
       }
       for (const original of t.originals) {
-        sendDrawableUpdate(original.id, {
+        const moveUpdate = {
           points: original.points.map(p => ({
             nx: clamp(p.nx + safeDx, 0, 1),
             ny: clamp(p.ny + safeDy, 0, 1)
           }))
-        })
+        }
+        sendDrawableUpdate(original.id, moveUpdate, { emit: false })
+        if (shouldEmit) sendDrawableUpdate(original.id, moveUpdate, { local: false })
       }
       if (final) transformRef.current = null
       return
@@ -373,7 +379,8 @@ export default function Board() {
         updates.size = nextSize
       }
     }
-    sendDrawableUpdate(t.id, updates)
+    sendDrawableUpdate(t.id, updates, { emit: false })
+    if (shouldEmit) sendDrawableUpdate(t.id, updates, { local: false })
     if (final) transformRef.current = null
   }
 

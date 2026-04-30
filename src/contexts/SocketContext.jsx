@@ -271,14 +271,17 @@ export default function SocketProvider({ children }) {
     return localId
   }
 
-  function sendDrawableUpdate(id, updates) {
+  function sendDrawableUpdate(id, updates, options = {}) {
+    const { emit = true, local = true } = options
     const s = socketRef.current
     if (!s || !s.connected || !currentUser || !id || !updates) return
-    setDrawables(prev => prev.map(d => {
-      if (d.id !== id) return d
-      return { ...d, ...updates }
-    }))
-    s.emit('drawable-update', { id, updates })
+    if (local) {
+      setDrawables(prev => prev.map(d => {
+        if (d.id !== id) return d
+        return { ...d, ...updates }
+      }))
+    }
+    if (emit) s.emit('drawable-update', { id, updates })
   }
 
   function sendDrawableDelete(ids) {
