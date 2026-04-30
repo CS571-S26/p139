@@ -612,13 +612,17 @@ textarea.inp { height: auto; min-height: 120px; padding: 0.7rem 0.9rem; resize: 
   cursor: pointer;
   pointer-events: auto;
   touch-action: none;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.22);
 }
 .drawable-delete-handle svg {
+  display: block;
   width: 14px;
   height: 14px;
+  transform: translateY(-0.5px);
 }
 
 @media (pointer: coarse) {
