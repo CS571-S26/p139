@@ -65,6 +65,23 @@ async function saveRoomToDb(code, room) {
   if (error) console.error('[persistence] saveRoomToDb error', code, error.message);
 }
 
+async function saveFeedbackToDb(entry) {
+  if (!supabase) return true;
+  const { error } = await supabase
+    .from('feedback')
+    .insert({
+      name: entry.name,
+      message: entry.message,
+      socket_id: entry.socketId,
+      room_code: entry.roomCode || null
+    });
+  if (error) {
+    console.error('[persistence] saveFeedbackToDb error', error.message);
+    return false;
+  }
+  return true;
+}
+
 function markDirty(code) {
   const room = rooms.get(code);
   if (room) room.dirty = true;
@@ -433,7 +450,7 @@ io.on('connection', (socket) => {
     io.to(code).emit('chat-message', msg);
   });
 
-  socket.on('feedback-send', ({ name, message } = {}) => {
+  socket.on('feedback-send', async ({ name, message } = {}) => {
     if (typeof message !== 'string') return;
     const trimmedMsg = message.trim();
     if (!trimmedMsg || trimmedMsg.length > 1000) {
@@ -447,12 +464,16 @@ io.on('connection', (socket) => {
       name: cleanName,
       message: trimmedMsg,
       timestamp: new Date().toISOString(),
-      socketId: socket.id
+      socketId: socket.id,
+      roomCode: socketRooms.get(socket.id) || null
     };
     feedbackLog.push(entry);
     if (feedbackLog.length > 200) feedbackLog.splice(0, feedbackLog.length - 200);
     console.log('[feedback]', JSON.stringify(entry));
-    socket.emit('feedback-ack', { ok: true });
+    const saved = await saveFeedbackToDb(entry);
+    socket.emit('feedback-ack', saved
+      ? { ok: true }
+      : { ok: false, error: 'Could not save feedback. Try again.' });
   });
 
   function performClear(code, room) {
