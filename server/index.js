@@ -436,7 +436,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(code);
     if (!room) return;
     if (typeof id !== 'string' || !updates || typeof updates !== 'object') return;
-    const idx = room.drawables.findIndex(d => d.id === id && d.socketId === socket.id);
+    const idx = room.drawables.findIndex(d => d.id === id);
     if (idx === -1) return;
 
     const current = room.drawables[idx];
@@ -486,7 +486,7 @@ io.on('connection', (socket) => {
     if (requested.size === 0) return;
     const removed = [];
     room.drawables = room.drawables.filter(d => {
-      if (d.socketId === socket.id && requested.has(d.id)) {
+      if (requested.has(d.id)) {
         removed.push(d.id);
         return false;
       }

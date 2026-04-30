@@ -270,7 +270,7 @@ export default function SocketProvider({ children }) {
     const s = socketRef.current
     if (!s || !s.connected || !currentUser || !id || !updates) return
     setDrawables(prev => prev.map(d => {
-      if (d.id !== id || d.socketId !== currentUser.socketId) return d
+      if (d.id !== id) return d
       return { ...d, ...updates }
     }))
     s.emit('drawable-update', { id, updates })
@@ -282,7 +282,7 @@ export default function SocketProvider({ children }) {
     const safeIds = Array.from(new Set((ids || []).filter(id => typeof id === 'string'))).slice(0, 100)
     if (safeIds.length === 0) return
     const deleted = new Set(safeIds)
-    setDrawables(prev => prev.filter(d => d.socketId !== currentUser.socketId || !deleted.has(d.id)))
+    setDrawables(prev => prev.filter(d => !deleted.has(d.id)))
     setUndoStack(prev => prev.filter(id => !deleted.has(id)))
     setRedoStack(prev => prev.filter(d => !deleted.has(d.id)))
     s.emit('draw-delete', { ids: safeIds })

@@ -106,7 +106,7 @@ export default function Board() {
   const selectedIdSet = new Set(selectedDrawableIds)
   const selectedDrawables = drawables.filter(d => selectedIdSet.has(d.id))
   const selectedDrawable = selectedDrawables.length === 1 ? selectedDrawables[0] : null
-  const selectedEditableText = selectedDrawable?.tool === 'text' && selectedDrawable.socketId === currentUser?.socketId
+  const selectedEditableText = selectedDrawable?.tool === 'text'
   const activeSize = textOverlay ? (textOverlay.size || strokeSize) : selectedEditableText ? (selectedDrawable.size || strokeSize) : strokeSize
 
   function clamp(n, min, max) {
@@ -209,7 +209,6 @@ export default function Board() {
     const y = e.clientY - rect.top
     for (let i = drawables.length - 1; i >= 0; i--) {
       const d = drawables[i]
-      if (d.socketId !== currentUser.socketId) continue
       if (allowedTools && !allowedTools.includes(d.tool)) continue
       const box = drawableRect(d)
       if (!box) continue
@@ -231,7 +230,7 @@ export default function Board() {
       ? selectedDrawableIds
       : [drawable.id]
     setSelectedDrawableIds(activeIds)
-    const movingDrawables = drawables.filter(d => activeIds.includes(d.id) && d.socketId === currentUser?.socketId)
+    const movingDrawables = drawables.filter(d => activeIds.includes(d.id))
     const movingBounds = unionRects(movingDrawables.map(d => drawableRect(d)))
     transformRef.current = {
       id: drawable.id,
@@ -316,7 +315,6 @@ export default function Board() {
       const ids = rect.w < 6 && rect.h < 6
         ? []
         : drawables
-            .filter(d => d.socketId === currentUser.socketId)
             .filter(d => {
               const box = drawableRect(d)
               return box && rectsIntersect(rect, box)
@@ -593,12 +591,11 @@ export default function Board() {
 
   const deleteSelectedDrawables = useCallback(() => {
     const ids = selectedDrawables
-      .filter(d => d.socketId === currentUser?.socketId)
       .map(d => d.id)
     if (ids.length === 0) return
     sendDrawableDelete(ids)
     setSelectedDrawableIds([])
-  }, [currentUser?.socketId, selectedDrawables, sendDrawableDelete])
+  }, [selectedDrawables, sendDrawableDelete])
 
   function startTextOverlayResize(e) {
     if (!textOverlay || !wrapRef.current) return
