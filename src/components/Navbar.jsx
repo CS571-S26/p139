@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Nav, Button } from 'react-bootstrap'
 import { useSocket } from '../contexts/SocketContext'
 
 export default function Navbar() {
@@ -52,7 +53,7 @@ export default function Navbar() {
           ))}
         </div>
       ) : (
-        <div className="nav-m">
+        <Nav as="div" className="nav-m">
           <NavLink to="/" end className={({ isActive }) => `nl${isActive ? ' on' : ''}`}>
             Home
           </NavLink>
@@ -67,12 +68,12 @@ export default function Navbar() {
               Board
             </NavLink>
           )}
-        </div>
+        </Nav>
       )}
 
       <div className="nav-r">
         {onBoard && roomCode && (
-          <button className="btn-leave" onClick={handleLeave}>Leave</button>
+          <Button variant="outline-light" className="btn-leave" onClick={handleLeave}>Leave</Button>
         )}
       </div>
     </nav>

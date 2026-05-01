@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Form, Button } from 'react-bootstrap'
 import { useSocket } from '../contexts/SocketContext'
 
 export default function Feedback() {
@@ -44,22 +45,21 @@ export default function Feedback() {
         </div>
         <h1 className="h1">Send feedback</h1>
         <p className="sub">Found a bug? Want a feature? Tell us.</p>
-        <form className="form" onSubmit={handleSubmit}>
-          <div className="field">
-            <label htmlFor="fb-name" className="lbl">Name <span className="lbl-meta">(optional)</span></label>
-            <input
-              id="fb-name"
+        <Form className="form" onSubmit={handleSubmit}>
+          <Form.Group className="field" controlId="fb-name">
+            <Form.Label className="lbl">Name <span className="lbl-meta">(optional)</span></Form.Label>
+            <Form.Control
               className="inp"
               placeholder="e.g. Alex"
               maxLength={30}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-          </div>
-          <div className="field">
-            <label htmlFor="fb-msg" className="lbl">Message</label>
-            <textarea
-              id="fb-msg"
+          </Form.Group>
+          <Form.Group className="field" controlId="fb-msg">
+            <Form.Label className="lbl">Message</Form.Label>
+            <Form.Control
+              as="textarea"
               className="inp"
               placeholder="Tell us what's on your mind…"
               maxLength={1000}
@@ -68,14 +68,14 @@ export default function Feedback() {
               required
             />
             <div className="feedback-counter">{message.length} / 1000</div>
-          </div>
-          <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
+          </Form.Group>
+          <Button type="submit" className="btn btn-primary" disabled={!canSubmit}>
             {submitting ? 'Sending…' : 'Send feedback'}
-          </button>
+          </Button>
           <p className={'feedback-status' + (status ? ' ' + status.kind : '')}>
             {status?.text || ''}
           </p>
-        </form>
+        </Form>
       </div>
     </div>
   )

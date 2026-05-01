@@ -1,3 +1,5 @@
+import { Badge } from 'react-bootstrap'
+
 export default function About() {
   return (
     <div className="about">
@@ -48,11 +50,11 @@ export default function About() {
       <div className="about-tech">
         <h2 className="about-section-title">Built with</h2>
         <div className="tech-tags">
-          <span className="tech-tag">React</span>
-          <span className="tech-tag">Vite</span>
-          <span className="tech-tag">Tailwind CSS</span>
-          <span className="tech-tag">WebSockets</span>
-          <span className="tech-tag">Canvas API</span>
+          <Badge bg="" className="tech-tag">React</Badge>
+          <Badge bg="" className="tech-tag">Vite</Badge>
+          <Badge bg="" className="tech-tag">React Bootstrap</Badge>
+          <Badge bg="" className="tech-tag">WebSockets</Badge>
+          <Badge bg="" className="tech-tag">Canvas API</Badge>
         </div>
       </div>
     </div>
