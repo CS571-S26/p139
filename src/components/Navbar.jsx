@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Nav, Button } from 'react-bootstrap'
+import { Nav } from 'react-bootstrap'
 import { useSocket } from '../contexts/SocketContext'
 
 export default function Navbar() {
@@ -73,7 +73,7 @@ export default function Navbar() {
 
       <div className="nav-r">
         {onBoard && roomCode && (
-          <Button variant="outline-light" className="btn-leave" onClick={handleLeave}>Leave</Button>
+          <button className="btn-leave" onClick={handleLeave}>Leave</button>
         )}
       </div>
     </nav>
