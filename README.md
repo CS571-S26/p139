@@ -16,7 +16,7 @@ Built for CS571 by Roman Kus.
 
 ## Tech
 
-- **Frontend:** React 19, Vite, plain CSS, React Router. Deployed on Vercel.
+- **Frontend:** React 19, Vite, React Bootstrap, React Router, custom CSS design system. Deployed on Vercel.
 - **Backend:** Node, Express, Socket.io. Deployed on Render.
 - **Storage:** Supabase Postgres for room state and feedback.
 
