@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
+import { Form, Button } from 'react-bootstrap'
 import { useSocket } from '../contexts/SocketContext'
 import RemoteCursors from '../components/RemoteCursors'
 import DrawLayer from '../components/DrawLayer'
@@ -935,6 +936,7 @@ export default function Board() {
             value={activeSize}
             onChange={e => handleStrokeSizeChange(+e.target.value)}
             title={(selectedEditableText ? 'Text size: ' : 'Size: ') + activeSize}
+            aria-label={(selectedEditableText ? 'Text size' : 'Stroke size') + ' (' + activeSize + ' pixels)'}
           />
           <div className="stroke-preview-slot">
             <div
@@ -1022,6 +1024,7 @@ export default function Board() {
             accept="image/*"
             style={{ display: 'none' }}
             onChange={handleFilePicked}
+            aria-label="Upload image"
           />
         </div>
 
@@ -1048,6 +1051,7 @@ export default function Board() {
             <textarea
               ref={textOverlayRef}
               className="text-overlay"
+              aria-label="Text on canvas"
               style={{
                 left: textOverlay.x,
                 top: textOverlay.y,
@@ -1179,8 +1183,10 @@ export default function Board() {
                 </div>
               ))}
             </div>
-            <form className="chat-input-row" onSubmit={submitChat}>
-              <input
+            <Form className="chat-input-row" onSubmit={submitChat}>
+              <Form.Label htmlFor="chat-input" className="sr-only">Chat message</Form.Label>
+              <Form.Control
+                id="chat-input"
                 ref={chatInputRef}
                 className="chat-input"
                 type="text"
@@ -1188,13 +1194,14 @@ export default function Board() {
                 value={draftMsg}
                 onChange={(e) => setDraftMsg(e.target.value)}
                 maxLength={400}
+                aria-label="Chat message"
               />
-              <button type="submit" className="chat-send-btn" disabled={!draftMsg.trim()} aria-label="Send">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <Button type="submit" className="chat-send-btn" disabled={!draftMsg.trim()} aria-label="Send message">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
                 </svg>
-              </button>
-            </form>
+              </Button>
+            </Form>
           </aside>
         )}
       </div>

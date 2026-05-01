@@ -38,7 +38,7 @@ export default function Feedback() {
   return (
     <div className="home">
       <div className="home-card home-card-wide">
-        <div className="icon">
+        <div className="icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
           </svg>
