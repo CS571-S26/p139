@@ -93,3 +93,4 @@ server/
 ## Author
 
 Roman Kus, [@RomanWKus](https://github.com/RomanWKus) on GitHub. Sophomore project, spring 2026.
+
