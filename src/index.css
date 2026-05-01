@@ -85,7 +85,8 @@ nav {
 }
 .nav-room-pill {
   display: flex; align-items: center; gap: 6px;
-  font-family: monospace; font-size: 0.85rem;
+  height: 36px; line-height: 1;
+  font-family: monospace; font-size: 0.9rem;
   color: var(--white); background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
   padding: 5px 10px; cursor: pointer; transition: border-color 0.2s;
@@ -1007,18 +1008,18 @@ textarea.inp { height: auto; min-height: 120px; padding: 0.7rem 0.9rem; resize: 
     overflow: hidden;
   }
   .nav-room-pill {
-    padding: 0 12px; font-size: 0.8rem; gap: 6px; flex-shrink: 0;
-    height: 30px; line-height: 1; box-sizing: border-box;
+    padding: 0 12px; font-size: 0.85rem; gap: 6px; flex-shrink: 0;
+    height: 34px; line-height: 1; box-sizing: border-box;
   }
   .nav-room-label { display: none; }
-  .nav-room-code { font-size: 0.82rem; }
-  .nav-copy-icon { width: 13px; height: 13px; }
+  .nav-room-code { font-size: 0.85rem; }
+  .nav-copy-icon { width: 14px; height: 14px; }
   .nav-user { gap: 0; font-size: 0; }
   .nav-udot { width: 12px; height: 12px; }
   .nav-r { min-width: auto; flex-shrink: 0; }
   .btn-leave {
-    padding: 2px 14px 0; font-size: 0.8rem;
-    height: 30px; line-height: 1; box-sizing: border-box;
+    padding: 2px 14px 0; font-size: 0.82rem;
+    height: 34px; line-height: 1; box-sizing: border-box;
     display: inline-flex; align-items: center; justify-content: center;
   }
 }
