@@ -197,7 +197,12 @@ io.on('connection', (socket) => {
     const candidates = [];
     for (const [code, room] of rooms) {
       if (!room.isPublic) continue;
-      if (room.users.size === 0 || room.users.size >= MAX_USERS) continue;
+      // Count only sockets that are still actually connected so zombie users
+      // (closed-tab disconnects that haven't fired yet) don't keep an empty
+      // room alive in the matchmaking pool.
+      const liveCount = [...room.users.keys()]
+        .filter(sid => io.sockets.sockets.get(sid)?.connected).length;
+      if (liveCount === 0 || liveCount >= MAX_USERS) continue;
       candidates.push(code);
     }
     if (candidates.length === 0) {
