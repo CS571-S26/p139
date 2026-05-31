@@ -145,6 +145,9 @@ const socketRooms = new Map();
 const feedbackLog = [];
 
 app.get('/', (_req, res) => res.json({ status: 'ok' }));
+// Lightweight endpoint for keep-warm pings (e.g. UptimeRobot) so the Render
+// free-tier dyno doesn't spin down after 15 minutes idle.
+app.get('/health', (_req, res) => res.type('text/plain').send('ok'));
 
 io.on('connection', (socket) => {
   socket.on('create-room', async ({ name, isPublic } = {}) => {
