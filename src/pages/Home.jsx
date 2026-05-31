@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Form, Button } from 'react-bootstrap'
+import { Form, Button, Spinner } from 'react-bootstrap'
 import { useSocket } from '../contexts/SocketContext'
 
 export default function Home() {
@@ -8,6 +8,7 @@ export default function Home() {
   const codeRef = useRef(null)
   const [error, setError] = useState(null)
   const [isPublic, setIsPublic] = useState(false)
+  const [creating, setCreating] = useState(false)
   const { roomCode, error: socketError, createRoom, joinRoom, joinPublicRoom } = useSocket()
   const navigate = useNavigate()
 
@@ -16,7 +17,7 @@ export default function Home() {
   }, [roomCode, navigate])
 
   useEffect(() => {
-    if (socketError) setError(socketError)
+    if (socketError) { setError(socketError); setCreating(false) }
   }, [socketError])
 
   useEffect(() => {
@@ -29,6 +30,7 @@ export default function Home() {
     const name = nameRef.current?.value.trim()
     if (!name) { setError('Enter your name first.'); return }
     setError(null)
+    setCreating(true)
     createRoom(name, isPublic)
   }
 
@@ -76,7 +78,19 @@ export default function Home() {
             </Form.Group>
             {error && <p className="form-error" role="alert">{error}</p>}
 
-            <Button type="submit" className="btn btn-primary" onClick={handleCreate}>Create new room</Button>
+            <Button type="submit" className="btn btn-primary" onClick={handleCreate} disabled={creating}>
+              {creating && (
+                <Spinner
+                  as="span"
+                  animation="border"
+                  size="sm"
+                  role="status"
+                  aria-hidden="true"
+                  className="btn-spinner"
+                />
+              )}
+              {creating ? 'Creating room…' : 'Create new room'}
+            </Button>
             <Form.Check
               type="checkbox"
               id="make-public"
