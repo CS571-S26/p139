@@ -260,6 +260,14 @@ nav {
 .btn-spinner { margin-right: 0.55rem; color: #fff; }
 /* Variant for buttons that use the surrounding text color (Join, link-btn) */
 .btn-spinner-dark { color: inherit; }
+/* "Loading button" pattern: button keeps its width because the label stays in
+   the DOM (visibility:hidden), and the spinner overlays centered. */
+.btn-loading-wrap { position: relative; }
+.btn-spinner-abs {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+}
 .btn-secondary {
   width: 100%; background: var(--surface); color: var(--white);
   border: 1px solid var(--border);

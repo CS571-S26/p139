@@ -122,10 +122,11 @@ export default function Home() {
                 onKeyDown={handleKeyDown}
                 onChange={() => setError(null)}
               />
-              <Button type="button" variant="light" className="btn btn-ghost" onClick={handleJoin} disabled={joining}>
-                {joining ? (
-                  <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="btn-spinner-dark" />
-                ) : 'Join'}
+              <Button type="button" variant="light" className="btn btn-ghost btn-loading-wrap" onClick={handleJoin} disabled={joining}>
+                <span style={{ visibility: joining ? 'hidden' : 'visible' }}>Join</span>
+                {joining && (
+                  <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="btn-spinner-abs btn-spinner-dark" />
+                )}
               </Button>
             </div>
 
