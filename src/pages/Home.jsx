@@ -9,6 +9,8 @@ export default function Home() {
   const [error, setError] = useState(null)
   const [isPublic, setIsPublic] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [joining, setJoining] = useState(false)
+  const [joiningPublic, setJoiningPublic] = useState(false)
   const { roomCode, error: socketError, createRoom, joinRoom, joinPublicRoom } = useSocket()
   const navigate = useNavigate()
 
@@ -17,7 +19,12 @@ export default function Home() {
   }, [roomCode, navigate])
 
   useEffect(() => {
-    if (socketError) { setError(socketError); setCreating(false) }
+    if (socketError) {
+      setError(socketError)
+      setCreating(false)
+      setJoining(false)
+      setJoiningPublic(false)
+    }
   }, [socketError])
 
   useEffect(() => {
@@ -40,6 +47,7 @@ export default function Home() {
     if (!name) { setError('Enter your name first.'); return }
     if (!code) { setError('Enter a room code.'); return }
     setError(null)
+    setJoining(true)
     joinRoom(name, code.toUpperCase())
   }
 
@@ -47,6 +55,7 @@ export default function Home() {
     const name = nameRef.current?.value.trim()
     if (!name) { setError('Enter your name first.'); return }
     setError(null)
+    setJoiningPublic(true)
     joinPublicRoom(name)
   }
 
@@ -113,11 +122,18 @@ export default function Home() {
                 onKeyDown={handleKeyDown}
                 onChange={() => setError(null)}
               />
-              <Button type="button" variant="light" className="btn btn-ghost" onClick={handleJoin}>Join</Button>
+              <Button type="button" variant="light" className="btn btn-ghost" onClick={handleJoin} disabled={joining}>
+                {joining ? (
+                  <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="btn-spinner btn-spinner-dark" />
+                ) : 'Join'}
+              </Button>
             </div>
 
-            <Button type="button" variant="link" className="link-btn" onClick={handleJoinPublic}>
-              Drop into a random public room
+            <Button type="button" variant="link" className="link-btn" onClick={handleJoinPublic} disabled={joiningPublic}>
+              {joiningPublic && (
+                <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="btn-spinner btn-spinner-dark" />
+              )}
+              {joiningPublic ? 'Finding a room…' : 'Drop into a random public room'}
             </Button>
           </Form>
         </div>

@@ -257,6 +257,8 @@ nav {
 .spinner-border-sm { width: 0.95rem; height: 0.95rem; border-width: 0.18em; }
 @keyframes spinner-border { to { transform: rotate(360deg); } }
 .btn-spinner { margin-right: 0.55rem; color: #fff; }
+/* Variant for buttons that use the surrounding text color (Join, link-btn) */
+.btn-spinner-dark { color: inherit; }
 .btn-secondary {
   width: 100%; background: var(--surface); color: var(--white);
   border: 1px solid var(--border);
