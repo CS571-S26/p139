@@ -124,7 +124,7 @@ export default function Home() {
               />
               <Button type="button" variant="light" className="btn btn-ghost" onClick={handleJoin} disabled={joining}>
                 {joining ? (
-                  <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="btn-spinner btn-spinner-dark" />
+                  <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="btn-spinner-dark" />
                 ) : 'Join'}
               </Button>
             </div>
