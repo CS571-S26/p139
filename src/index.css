@@ -263,10 +263,14 @@ nav {
 /* "Loading button" pattern: button keeps its width because the label stays in
    the DOM (visibility:hidden), and the spinner overlays centered. */
 .btn-loading-wrap { position: relative; }
+/* Center with negative margins, NOT transform: the spinner animation already
+   uses transform: rotate(), so a transform-based translate would fight it and
+   make the spinner jump around instead of spinning in place. */
 .btn-spinner-abs {
   position: absolute;
   top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
+  margin-top: -0.475rem;
+  margin-left: -0.475rem;
 }
 .btn-secondary {
   width: 100%; background: var(--surface); color: var(--white);
